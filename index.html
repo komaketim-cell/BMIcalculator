@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>محاسبه‌گر سلامت | کمکتیم</title>
-  <meta name="description" content="محاسبه BMI، BMR، TDEE و Z-Score کودک/نوجوان بر اساس استاندارد WHO توسط کمکتیم">
+  <meta name="description" content="محاسبه BMI، BMR، TDEE و سن دقیق با ورودی شمسی">
   <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet">
@@ -31,9 +31,8 @@
     <section class="hero glass">
       <div class="hero-text">
         <span class="status-pill">نسخه پیشرفته 2026</span>
-        <h2>همه محاسبات سلامت فقط با سه عدد</h2>
-        <p>تاریخ تولد، قد و وزن را وارد کنید؛ الگوریتم‌های استاندارد WHO و Mifflin–St Jeor همه چیز را دقیق و حرفه‌ای محاسبه می‌کنند.</p>
-        <button class="primary-btn" id="scrollToCalculator">شروع سریع محاسبه</button>
+        <h2>محاسبه BMI، BMR، TDEE و سن دقیق</h2>
+        <p>تاریخ تولد شمسی، قد و وزن را وارد کنید؛ محاسبات تخصصی خودکار انجام می‌شود.</p>
       </div>
       <div class="hero-insights">
         <div class="insight-card">
@@ -55,8 +54,35 @@
 
       <div class="input-grid">
         <div class="input-field">
-          <label for="dobInput">تاریخ تولد (میلادی)</label>
-          <input type="date" id="dobInput" />
+          <label>تاریخ تولد (شمسی)</label>
+          <div class="dob-grid">
+            <div>
+              <input type="text" id="dobYear" placeholder="سال" list="yearList" inputmode="numeric">
+              <datalist id="yearList"></datalist>
+            </div>
+            <div>
+              <select id="dobMonth">
+                <option value="">ماه</option>
+                <option value="1">فروردین</option>
+                <option value="2">اردیبهشت</option>
+                <option value="3">خرداد</option>
+                <option value="4">تیر</option>
+                <option value="5">مرداد</option>
+                <option value="6">شهریور</option>
+                <option value="7">مهر</option>
+                <option value="8">آبان</option>
+                <option value="9">آذر</option>
+                <option value="10">دی</option>
+                <option value="11">بهمن</option>
+                <option value="12">اسفند</option>
+              </select>
+            </div>
+            <div>
+              <select id="dobDay">
+                <option value="">روز</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div class="input-field">
@@ -100,7 +126,7 @@
     <section class="results glass" id="reportCard">
       <div class="results-head">
         <h3>نتایج سلامت شما</h3>
-        <p>خلاصه کامل وضعیت براساس تاریخ تولد، قد و وزن وارد شده.</p>
+        <p id="exactAgeResult">سن دقیق بعد از محاسبه نمایش داده می‌شود.</p>
       </div>
 
       <div class="results-grid">
@@ -135,7 +161,7 @@
         <div>
           <h3>دانلود گزارش PDF</h3>
         </div>
-        <button class="secondary-btn" id="downloadPDF">دانلود PDF برند شده</button>
+        <button class="secondary-btn" id="downloadPDF">دانلود نتایح (PDF)</button>
       </div>
     </section>
 
