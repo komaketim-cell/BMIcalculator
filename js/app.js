@@ -1,203 +1,186 @@
-const siteName = "کمکتیم";
-const siteUrl = "Komaketim.ir";
+const genderButtons = document.querySelectorAll(".gender-btn");
+const ageInput = document.getElementById("ageInput");
+const heightInput = document.getElementById("heightInput");
+const weightInput = document.getElementById("weightInput");
+const activitySelect = document.getElementById("activityLevel");
+const calculateBtn = document.getElementById("calculateBtn");
+const scrollToCalculator = document.getElementById("scrollToCalculator");
 
-const fmt = (n, d = 2) => Number(n).toFixed(d);
+const bmiResult = document.getElementById("bmiResult");
+const growthResult = document.getElementById("growthResult");
+const metabolismResult = document.getElementById("metabolismResult");
+const downloadBtn = document.getElementById("downloadPDF");
+const toast = document.getElementById("toast");
 
-const bmiCategoryAdult = (bmi) => {
-  if (bmi < 18.5) return "کم‌وزن";
-  if (bmi < 25) return "نرمال";
-  if (bmi < 30) return "اضافه‌وزن";
-  if (bmi < 35) return "چاقی درجه 1";
-  if (bmi < 40) return "چاقی درجه 2";
-  return "چاقی درجه 3";
-};
+let selectedGender = "male";
 
-const whoCategory = (z) => {
-  if (z < -3) return "لاغری شدید";
-  if (z < -2) return "لاغری";
-  if (z <= 1) return "نرمال";
-  if (z <= 2) return "اضافه‌وزن";
-  if (z <= 3) return "چاقی";
-  return "چاقی شدید";
-};
-
-const calcBMI = (w, hCm) => {
-  const h = hCm / 100;
-  return w / (h * h);
-};
-
-const zScore = (bmi, L, M, S) => {
-  if (L === 0) return Math.log(bmi / M) / S;
-  return (Math.pow(bmi / M, L) - 1) / (L * S);
-};
-
-const bmrMifflin = (sex, w, h, age) => {
-  if (sex === "male") return 10 * w + 6.25 * h - 5 * age + 5;
-  return 10 * w + 6.25 * h - 5 * age - 161;
-};
-
-const setPdfDate = () => {
-  const d = new Date();
-  document.getElementById("pdfDate").textContent = d.toLocaleDateString("fa-IR");
-};
-
-const showResult = (el, html) => {
-  el.innerHTML = html;
-  el.classList.remove("hidden");
-};
-
-const syncPdfBlock = (block, html) => {
-  block.innerHTML = html;
-  block.classList.remove("hidden");
-};
-
-const hidePdfBlock = (block) => {
-  block.classList.add("hidden");
-  block.innerHTML = "";
-};
-
-const switchTabs = () => {
-  const buttons = document.querySelectorAll(".tab-btn");
-  const sections = document.querySelectorAll(".tab-section");
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      buttons.forEach(b => b.classList.remove("active"));
-      sections.forEach(s => s.classList.remove("active"));
-      btn.classList.add("active");
-      const tabId = btn.dataset.tab;
-      document.getElementById(`tab-${tabId}`).classList.add("active");
-    });
+if (scrollToCalculator) {
+  scrollToCalculator.addEventListener("click", () => {
+    document.getElementById("calculatorSection").scrollIntoView({ behavior: "smooth" });
   });
-};
+}
 
-const validateNumber = (v) => !isNaN(v) && v > 0;
+genderButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    genderButtons.forEach(el => el.classList.remove("active"));
+    btn.classList.add("active");
+    selectedGender = btn.dataset.gender;
+  });
+});
 
-const calcAdultHandler = () => {
-  const w = parseFloat(document.getElementById("adultWeight").value);
-  const h = parseFloat(document.getElementById("adultHeight").value);
-  const age = document.getElementById("adultAge").value;
+calculateBtn.addEventListener("click", () => {
+  const ageYears = parseFloat(ageInput.value);
+  const heightCm = parseFloat(heightInput.value);
+  const weightKg = parseFloat(weightInput.value);
 
-  if (!validateNumber(w) || !validateNumber(h)) {
-    alert("وزن و قد را درست وارد کنید.");
+  if (!isValidInput(ageYears, heightCm, weightKg)) {
+    showToast("لطفاً سن، قد و وزن معتبر وارد کنید.");
     return;
   }
 
-  const bmi = calcBMI(w, h);
-  const cat = bmiCategoryAdult(bmi);
+  const ageMonths = ageYears * 12;
+  const heightM = heightCm / 100;
+  const bmi = weightKg / Math.pow(heightM, 2);
+  const activityFactor = parseFloat(activitySelect.value || "1.55");
 
-  const html = `
-    <strong>نتیجه BMI بزرگسال</strong><br/>
-    BMI: <b>${fmt(bmi)}</b><br/>
-    وضعیت: <b>${cat}</b><br/>
-    ${age ? `سن: <b>${age}</b> سال` : ""}
+  renderBMIResult(ageYears, bmi);
+  renderGrowthResult(ageMonths, bmi, selectedGender);
+  renderMetabolismResult(ageYears, heightCm, weightKg, selectedGender, activityFactor);
+
+  showToast("محاسبات با موفقیت انجام شد.");
+});
+
+downloadBtn.addEventListener("click", () => {
+  const reportCard = document.getElementById("reportCard");
+  const opt = {
+    margin: [0.8, 0.6, 0.8, 0.6],
+    filename: `Komaketim-Report-${Date.now()}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: {
+      scale: 2.2,
+      useCORS: true,
+      backgroundColor: "#0f172a",
+    },
+    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["avoid-all"] }
+  };
+  html2pdf().set(opt).from(reportCard).save();
+});
+
+function isValidInput(age, height, weight) {
+  return age > 0 && height > 0 && weight > 0;
+}
+
+function renderBMIResult(ageYears, bmi) {
+  const category = getBMICategory(ageYears, bmi);
+  bmiResult.innerHTML = `
+    <div>شاخص توده بدنی (BMI): <strong>${bmi.toFixed(1)}</strong></div>
+    <div>طبقه‌بندی: <strong>${category.label}</strong></div>
+    <div class="muted">${category.description}</div>
   `;
-  showResult(document.getElementById("adultResult"), html);
-  syncPdfBlock(document.getElementById("pdfAdult"), html);
-};
+}
 
-const calcChildHandler = () => {
-  const sex = document.getElementById("childSex").value;
-  const years = parseInt(document.getElementById("childAgeYears").value || "0", 10);
-  const months = parseInt(document.getElementById("childAgeMonths").value || "0", 10);
-  const w = parseFloat(document.getElementById("childWeight").value);
-  const h = parseFloat(document.getElementById("childHeight").value);
-
-  if (months < 0 || months > 11) {
-    alert("ماه باید بین 0 تا 11 باشد.");
+function renderGrowthResult(ageMonths, bmi, gender) {
+  if (ageMonths < 61) {
+    growthResult.innerHTML = `
+      <div>این محاسبه برای سنین زیر ۵ سال در دسترس نیست.</div>
+      <div class="muted">در صورت نیاز از جدول‌های رشد مخصوص نوزادان و کودکان خردسال استفاده کنید.</div>
+    `;
     return;
   }
-  if (!validateNumber(w) || !validateNumber(h)) {
-    alert("وزن و قد را درست وارد کنید.");
-    return;
-  }
-
-  const totalMonths = years * 12 + months;
-  if (totalMonths < 61 || totalMonths > 228) {
-    alert("سن کودک/نوجوان باید بین ۶۱ تا ۲۲۸ ماه باشد.");
+  if (ageMonths > 228) {
+    growthResult.innerHTML = `
+      <div>آیا سنتان بالای ۱۹ سال است؟</div>
+      <div class="muted">محاسبات رشد کودک/نوجوان در بازه ۵ تا ۱۹ سال انجام می‌شود. برای سنین بالاتر از محاسبات بزرگسال استفاده کنید.</div>
+    `;
     return;
   }
 
-  const map = sex === "male" ? LMS.boys : LMS.girls;
-  const lms = map.get(totalMonths);
-  if (!lms) {
-    alert("داده LMS برای این ماه پیدا نشد.");
+  const roundedAge = Math.round(ageMonths);
+  const key = `${roundedAge}`;
+  const atlas = gender === "male" ? LMS_MALE : LMS_FEMALE;
+  const data = atlas[key];
+
+  if (!data) {
+    growthResult.innerHTML = `
+      <div>اطلاعات مرجع برای سن ${roundedAge} ماه یافت نشد.</div>
+      <div class="muted">لطفاً مقدار سن را کمی تغییر دهید و مجدداً تلاش کنید.</div>
+    `;
     return;
   }
 
-  const bmi = calcBMI(w, h);
-  const z = zScore(bmi, lms.L, lms.M, lms.S);
-  const cat = whoCategory(z);
+  const { L, M, S } = data;
+  const zScore = calculateZScore(bmi, L, M, S);
+  const interpretation = interpretZScore(zScore);
 
-  const html = `
-    <strong>نتیجه BMI کودک/نوجوان (WHO)</strong><br/>
-    سن: <b>${years} سال و ${months} ماه</b><br/>
-    BMI: <b>${fmt(bmi)}</b><br/>
-    Z-Score: <b>${fmt(z)}</b><br/>
-    وضعیت: <b>${cat}</b>
+  growthResult.innerHTML = `
+    <div>Z-Score BMI-for-Age: <strong>${zScore.toFixed(2)}</strong></div>
+    <div>سطح رشد: <strong>${interpretation.status}</strong></div>
+    <div class="muted">${interpretation.message}</div>
   `;
-  showResult(document.getElementById("childResult"), html);
-  syncPdfBlock(document.getElementById("pdfChild"), html);
-};
+}
 
-const calcBmrHandler = () => {
-  const sex = document.getElementById("bmrSex").value;
-  const age = parseFloat(document.getElementById("bmrAge").value);
-  const w = parseFloat(document.getElementById("bmrWeight").value);
-  const h = parseFloat(document.getElementById("bmrHeight").value);
-  const activity = parseFloat(document.getElementById("activityLevel").value);
+function renderMetabolismResult(ageYears, heightCm, weightKg, gender, activityFactor) {
+  const bmr = calculateBMR(gender, weightKg, heightCm, ageYears);
+  const tdee = bmr * activityFactor;
 
-  if (!validateNumber(age) || !validateNumber(w) || !validateNumber(h)) {
-    alert("سن، وزن و قد را درست وارد کنید.");
-    return;
-  }
-
-  const bmr = bmrMifflin(sex, w, h, age);
-  const tdee = bmr * activity;
-
-  const html = `
-    <strong>نتیجه BMR و TDEE</strong><br/>
-    BMR: <b>${fmt(bmr)}</b> کالری در روز<br/>
-    TDEE: <b>${fmt(tdee)}</b> کالری در روز
+  metabolismResult.innerHTML = `
+    <div>BMR (متابولیسم پایه): <strong>${Math.round(bmr)} kcal</strong></div>
+    <div>TDEE (کالری روزانه): <strong>${Math.round(tdee)} kcal</strong></div>
+    <div class="muted">سطح فعالیت در نظر گرفته شده: <strong>${activityLabel(activityFactor)}</strong></div>
   `;
-  showResult(document.getElementById("bmrResult"), html);
-  syncPdfBlock(document.getElementById("pdfBmr"), html);
-};
+}
 
-const downloadPdf = async () => {
-  const pdfArea = document.getElementById("pdf-area");
-  if (!pdfArea) return;
-
-  const { jsPDF } = window.jspdf;
-  const canvas = await html2canvas(pdfArea, { scale: 2, useCORS: true });
-  const imgData = canvas.toDataURL("image/png");
-
-  const pdf = new jsPDF("p", "mm", "a4");
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-  let heightLeft = imgHeight;
-  let position = 0;
-
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+function getBMICategory(ageYears, bmi) {
+  if (ageYears < 20) {
+    return {
+      label: "برای تفسیر دقیق از Z-Score استفاده می‌شود",
+      description: "بازه سنی شما زیر ۲۰ سال است؛ نتیجه اصلی در بخش رشد کودک/نوجوان نمایش داده شده."
+    };
   }
+  if (bmi < 18.5) return { label: "کمبود وزن", description: "وزن شما کمتر از محدوده استاندارد است. مشاوره تغذیه پیشنهاد می‌شود." };
+  if (bmi < 25) return { label: "طبیعی", description: "شاخص توده بدنی در محدوده سالم قرار دارد." };
+  if (bmi < 30) return { label: "اضافه وزن", description: "وزن شما بالاتر از محدوده استاندارد است. به تعادل تغذیه و فعالیت بدنی توجه کنید." };
+  return { label: "چاقی", description: "شاخص BMI بالا است. برنامه‌ریزی تغذیه و فعالیت با نظر متخصص توصیه می‌شود." };
+}
 
-  pdf.save("Komaketim-Report.pdf");
-};
+function calculateBMR(gender, weight, height, age) {
+  if (gender === "male") {
+    return 10 * weight + 6.25 * height - 5 * age + 5;
+  }
+  return 10 * weight + 6.25 * height - 5 * age - 161;
+}
 
-document.getElementById("calcAdult").addEventListener("click", calcAdultHandler);
-document.getElementById("calcChild").addEventListener("click", calcChildHandler);
-document.getElementById("calcBmr").addEventListener("click", calcBmrHandler);
-document.getElementById("btnDownloadPdf").addEventListener("click", downloadPdf);
+function calculateZScore(value, L, M, S) {
+  if (L !== 0) {
+    return (Math.pow(value / M, L) - 1) / (L * S);
+  }
+  return Math.log(value / M) / S;
+}
 
-setPdfDate();
-switchTabs();
+function interpretZScore(z) {
+  if (z < -3) return { status: "کمبود شدید", message: "نیاز به بررسی فوری وضعیت تغذیه‌ای و رشد وجود دارد." };
+  if (z >= -3 && z < -2) return { status: "کمبود وزن", message: "رشد کمتر از حد انتظار است. پیگیری با متخصص پیشنهاد می‌شود." };
+  if (z >= -2 && z <= 1) return { status: "رشد طبیعی", message: "رشد در محدوده سالم قرار دارد." };
+  if (z > 1 && z <= 2) return { status: "اضافه وزن", message: "در حال افزایش وزن بالاتر از محدوده طبیعی هستید. نظارت ضروری است." };
+  return { status: "چاقی", message: "شاخص رشد بالا است. حتماً با متخصص مشورت کنید." };
+}
+
+function activityLabel(factor) {
+  const mapping = {
+    "1.2": "بی‌تحرک",
+    "1.375": "فعالیت سبک",
+    "1.55": "فعالیت متوسط",
+    "1.725": "فعال",
+    "1.9": "بسیار فعال"
+  };
+  return mapping[factor.toString()] || "فعالیت متوسط";
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000);
+}
