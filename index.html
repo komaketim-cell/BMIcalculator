@@ -3,108 +3,91 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>محاسبه BMI، BMR، TDEE و سن دقیق | کمکتیم</title>
+  <title>کمکتیم | Komaketim.ir</title>
+
   <link rel="stylesheet" href="css/styles.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-title">کمکتیم | Komaketim.ir</span>
-    </div>
-  </header>
-
-  <main class="page">
-    <section class="hero">
-      <div class="hero-card">
-        <h1>محاسبه BMI، BMR، TDEE و سن دقیق</h1>
-        <p>با وارد کردن تاریخ تولد شمسی، قد، وزن و سطح فعالیت، نتایج دقیق و قابل دانلود دریافت کنید.</p>
+  <div class="page">
+    <header class="hero">
+      <div class="hero__inner">
+        <h1 class="hero__title">محاسبه BMI، BMR، TDEE و سن دقیق</h1>
+        <p class="hero__subtitle">با وارد کردن تاریخ تولد شمسی، قد، وزن و سطح فعالیت، نتایج دقیق و قابل دانلود دریافت کنید.</p>
       </div>
-    </section>
+    </header>
 
-    <section class="calculator">
-      <div class="card glass">
-        <h2>اطلاعات پایه</h2>
+    <main class="grid">
+      <section class="card form-card">
+        <h2 class="card__title">اطلاعات پایه</h2>
 
         <div class="field">
-          <label>جنسیت</label>
-          <div class="gender-group">
-            <button type="button" class="gender-btn active" data-gender="male">پسر</button>
-            <button type="button" class="gender-btn" data-gender="female">دختر</button>
+          <label class="label">جنسیت</label>
+          <div class="toggle">
+            <button class="toggle__btn active" data-gender="female" id="genderFemale">دختر</button>
+            <button class="toggle__btn" data-gender="male" id="genderMale">پسر</button>
           </div>
         </div>
 
         <div class="field">
-          <label>تاریخ تولد (شمسی)</label>
-          <div class="dob-grid">
-            <div>
-              <input id="dobYear" type="text" placeholder="سال" list="yearList" />
-              <datalist id="yearList"></datalist>
-            </div>
-            <div>
-              <select id="dobMonth">
-                <option value="">ماه</option>
-                <option value="1">فروردین</option>
-                <option value="2">اردیبهشت</option>
-                <option value="3">خرداد</option>
-                <option value="4">تیر</option>
-                <option value="5">مرداد</option>
-                <option value="6">شهریور</option>
-                <option value="7">مهر</option>
-                <option value="8">آبان</option>
-                <option value="9">آذر</option>
-                <option value="10">دی</option>
-                <option value="11">بهمن</option>
-                <option value="12">اسفند</option>
-              </select>
-            </div>
-            <div>
-              <select id="dobDay">
-                <option value="">روز</option>
-              </select>
-            </div>
-          </div>
-        </div>
+          <label class="label">تاریخ تولد (شمسی)</label>
+          <div class="birth-grid">
+            <input class="input input--year" type="text" id="birthYear" list="yearsList" placeholder="سال" />
+            <datalist id="yearsList"></datalist>
 
-        <div class="field two-col">
-          <div>
-            <label>قد (سانتی‌متر)</label>
-            <input id="heightInput" type="number" placeholder="مثلاً 160" />
-          </div>
-          <div>
-            <label>وزن (کیلوگرم)</label>
-            <input id="weightInput" type="number" placeholder="مثلاً 55" />
+            <select class="input" id="birthMonth"></select>
+            <select class="input" id="birthDay"></select>
           </div>
         </div>
 
         <div class="field">
-          <label>سطح فعالیت</label>
-          <select id="activityLevel">
-            <option value="1.2">بی‌تحرک</option>
-            <option value="1.375">فعالیت سبک</option>
-            <option value="1.55" selected>فعالیت متوسط</option>
-            <option value="1.725">فعال</option>
-            <option value="1.9">بسیار فعال</option>
+          <label class="label">قد (سانتی‌متر)</label>
+          <input class="input" type="number" id="height" placeholder="مثلاً 175" />
+        </div>
+
+        <div class="field">
+          <label class="label">وزن (کیلوگرم)</label>
+          <input class="input" type="number" id="weight" placeholder="مثلاً 58" />
+        </div>
+
+        <div class="field">
+          <label class="label">سطح فعالیت</label>
+          <select class="input input--activity" id="activity">
+            <option value="1.2">کم‌تحرک</option>
+            <option value="1.375">کم‌فعال</option>
+            <option value="1.55" selected>فعال متوسط</option>
+            <option value="1.725">بسیار فعال</option>
+            <option value="1.9">فوق‌العاده فعال</option>
           </select>
         </div>
 
-        <button id="calculateBtn" class="primary-btn">محاسبه خودکار</button>
-      </div>
+        <button class="btn btn--primary" id="calcBtn">محاسبه خودکار</button>
+      </section>
 
-      <div class="card results glass" id="reportCard">
-        <h2>نتایج</h2>
-        <div id="exactAgeResult" class="result-line">سن دقیق: -</div>
-        <div id="bmiResult" class="result-box">BMI: -</div>
-        <div id="growthResult" class="result-box">ارزیابی رشد: -</div>
-        <div id="metabolismResult" class="result-box">BMR/TDEE: -</div>
+      <section class="card results-card" id="resultsCard">
+        <h2 class="card__title">نتایج</h2>
 
-        <button id="downloadPDF" class="ghost-btn">دانلود نتایح (PDF)</button>
-      </div>
-    </section>
-  </main>
+        <div class="result-box" id="exactAgeResult">سن دقیق: —</div>
 
-  <div id="toast" class="toast"></div>
+        <div class="result-box" id="bmiResult">شاخص توده بدنی (BMI): —</div>
 
+        <div class="result-box result-box--note" id="zScoreResult">
+          طبقه‌بندی: —  
+          برای تفسیر دقیق در سنین ۵ تا ۱۹ سال، Z-Score استفاده می‌شود.
+        </div>
+
+        <div class="result-box" id="bmrResult">BMR (متابولیسم پایه): —</div>
+        <div class="result-box" id="tdeeResult">TDEE (کالری روزانه): —</div>
+
+        <button class="btn btn--ghost" id="pdfBtn">دانلود نتایج (PDF)</button>
+        <div class="hint" id="pdfHint"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- PDF library must be loaded BEFORE app.js -->
   <script src="js/html2pdf.bundle.min.js"></script>
   <script src="js/app.js"></script>
 </body>
