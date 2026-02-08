@@ -1,5 +1,5 @@
 const genderButtons = document.querySelectorAll(".gender-btn");
-const ageInput = document.getElementById("ageInput");
+const dobInput = document.getElementById("dobInput");
 const heightInput = document.getElementById("heightInput");
 const weightInput = document.getElementById("weightInput");
 const activitySelect = document.getElementById("activityLevel");
@@ -29,16 +29,26 @@ genderButtons.forEach(btn => {
 });
 
 calculateBtn.addEventListener("click", () => {
-  const ageYears = parseFloat(ageInput.value);
+  const dobValue = dobInput.value;
   const heightCm = parseFloat(heightInput.value);
   const weightKg = parseFloat(weightInput.value);
 
-  if (!isValidInput(ageYears, heightCm, weightKg)) {
-    showToast("لطفاً سن، قد و وزن معتبر وارد کنید.");
+  if (!dobValue || !isValidInput(heightCm, weightKg)) {
+    showToast("لطفاً تاریخ تولد، قد و وزن معتبر وارد کنید.");
     return;
   }
 
-  const ageMonths = ageYears * 12;
+  const dob = new Date(dobValue);
+  const today = new Date();
+  if (dob > today) {
+    showToast("تاریخ تولد نمی‌تواند در آینده باشد.");
+    return;
+  }
+
+  const ageInfo = calculateAge(dob, today);
+  const ageYears = ageInfo.ageYears;
+  const ageMonths = ageInfo.ageMonthsPrecise;
+
   const heightM = heightCm / 100;
   const bmi = weightKg / Math.pow(heightM, 2);
   const activityFactor = parseFloat(activitySelect.value || "1.55");
@@ -52,6 +62,12 @@ calculateBtn.addEventListener("click", () => {
 
 downloadBtn.addEventListener("click", () => {
   const reportCard = document.getElementById("reportCard");
+
+  if (typeof html2pdf === "undefined") {
+    showToast("کتابخانه PDF بارگذاری نشده است. اتصال اینترنت را بررسی کنید.");
+    return;
+  }
+
   const opt = {
     margin: [0.8, 0.6, 0.8, 0.6],
     filename: `Komaketim-Report-${Date.now()}.pdf`,
@@ -64,11 +80,37 @@ downloadBtn.addEventListener("click", () => {
     jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["avoid-all"] }
   };
-  html2pdf().set(opt).from(reportCard).save();
+
+  html2pdf().set(opt).from(reportCard).save()
+    .catch(() => {
+      showToast("خطا در تولید PDF. لطفاً دوباره تلاش کنید.");
+    });
 });
 
-function isValidInput(age, height, weight) {
-  return age > 0 && height > 0 && weight > 0;
+function isValidInput(height, weight) {
+  return height > 0 && weight > 0;
+}
+
+function calculateAge(dob, today) {
+  let years = today.getFullYear() - dob.getFullYear();
+  let months = today.getMonth() - dob.getMonth();
+  let days = today.getDate() - dob.getDate();
+
+  if (days < 0) {
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+    months--;
+  }
+
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  const ageMonthsPrecise = (years * 12) + months + (days / 30.4375);
+  const ageYears = ageMonthsPrecise / 12;
+
+  return { ageYears, ageMonthsPrecise };
 }
 
 function renderBMIResult(ageYears, bmi) {
@@ -104,7 +146,7 @@ function renderGrowthResult(ageMonths, bmi, gender) {
   if (!data) {
     growthResult.innerHTML = `
       <div>اطلاعات مرجع برای سن ${roundedAge} ماه یافت نشد.</div>
-      <div class="muted">لطفاً مقدار سن را کمی تغییر دهید و مجدداً تلاش کنید.</div>
+      <div class="muted">لطفاً تاریخ تولد را کمی تغییر دهید و مجدداً تلاش کنید.</div>
     `;
     return;
   }
