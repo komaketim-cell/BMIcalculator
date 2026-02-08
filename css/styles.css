@@ -1,0 +1,62 @@
+* { box-sizing: border-box; }
+body {
+  font-family: "Vazirmatn", sans-serif;
+  margin: 0;
+  background: #f6f7fb;
+  color: #1f2937;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+.site-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo { width: 56px; height: 56px; object-fit: contain; }
+.logo.small { width: 44px; height: 44px; }
+.brand-text h1 { margin: 0; font-size: 22px; }
+.brand-text p { margin: 2px 0 0; font-size: 13px; color: #6b7280; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-btn {
+  padding: 10px 16px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer;
+  border-radius: 8px; font-weight: 600;
+}
+.tab-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+
+.tab-section { display: none; background: #fff; padding: 16px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 16px; }
+.tab-section.active { display: block; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.form-field label { display: block; font-size: 14px; margin-bottom: 6px; }
+.form-field input, .form-field select {
+  width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px;
+}
+
+.btn {
+  padding: 10px 16px; border: none; border-radius: 8px; background: #111827; color: #fff; cursor: pointer;
+}
+.btn.primary { background: #16a34a; }
+
+.result-card {
+  margin-top: 12px; padding: 12px; border-radius: 10px; background: #f9fafb; border: 1px solid #e5e7eb;
+}
+.hidden { display: none; }
+
+.pdf-area {
+  background: #fff; border: 1px dashed #cbd5e1; padding: 16px; border-radius: 12px;
+}
+.pdf-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pdf-title h2 { margin: 0; font-size: 18px; }
+.pdf-title p { margin: 4px 0 0; font-size: 12px; color: #6b7280; }
+.pdf-date { font-size: 12px; color: #6b7280; }
+.pdf-block { margin-top: 12px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc; }
+
+.site-footer {
+  text-align: center; padding: 16px; font-size: 12px; color: #6b7280;
+}
