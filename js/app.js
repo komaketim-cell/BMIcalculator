@@ -74,7 +74,7 @@ downloadBtn.addEventListener("click", () => {
   const reportCard = document.getElementById("reportCard");
 
   if (typeof html2pdf === "undefined") {
-    showToast("کتابخانه PDF بارگذاری نشده است. اتصال اینترنت را بررسی کنید.");
+    showToast("کتابخانه PDF بارگذاری نشده است. مطمئن شوید فایل «js/html2pdf.bundle.min.js» در پروژه وجود دارد.");
     return;
   }
 
