@@ -1,295 +1,39 @@
-const genderButtons = document.querySelectorAll(".gender-btn");
-const yearInput = document.getElementById("dobYear");
-const monthSelect = document.getElementById("dobMonth");
-const daySelect = document.getElementById("dobDay");
-const heightInput = document.getElementById("heightInput");
-const weightInput = document.getElementById("weightInput");
-const activitySelect = document.getElementById("activityLevel");
-const calculateBtn = document.getElementById("calculateBtn");
+// ===========================
+// Jalali Date Helpers
+// ===========================
+const jalaliMonths = [
+  "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+  "مهر","آبان","آذر","دی","بهمن","اسفند"
+];
 
-const bmiResult = document.getElementById("bmiResult");
-const growthResult = document.getElementById("growthResult");
-const metabolismResult = document.getElementById("metabolismResult");
-const exactAgeResult = document.getElementById("exactAgeResult");
-
-const downloadBtn = document.getElementById("downloadPDF");
-const toast = document.getElementById("toast");
-
-let selectedGender = "male";
-
-genderButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    genderButtons.forEach(el => el.classList.remove("active"));
-    btn.classList.add("active");
-    selectedGender = btn.dataset.gender;
-  });
-});
-
-initYearList();
-updateDayOptions();
-
-yearInput.addEventListener("input", updateDayOptions);
-monthSelect.addEventListener("change", updateDayOptions);
-
-calculateBtn.addEventListener("click", () => {
-  const jy = parseInt(yearInput.value, 10);
-  const jm = parseInt(monthSelect.value, 10);
-  const jd = parseInt(daySelect.value, 10);
-
-  const heightCm = parseFloat(heightInput.value);
-  const weightKg = parseFloat(weightInput.value);
-
-  if (!isValidJalaliDate(jy, jm, jd) || !isValidInput(heightCm, weightKg)) {
-    showToast("لطفاً تاریخ تولد، قد و وزن معتبر وارد کنید.");
-    return;
-  }
-
-  const gDate = jalaliToGregorian(jy, jm, jd);
-  const dob = new Date(gDate.gy, gDate.gm - 1, gDate.gd);
-  const today = new Date();
-
-  if (dob > today) {
-    showToast("تاریخ تولد نمی‌تواند در آینده باشد.");
-    return;
-  }
-
-  const ageJalali = diffJalali(jy, jm, jd, today);
-  exactAgeResult.innerHTML = `سن دقیق: <strong>${ageJalali.y} سال</strong>، <strong>${ageJalali.m} ماه</strong>، <strong>${ageJalali.d} روز</strong>`;
-
-  const ageMonthsPrecise = ageJalali.y * 12 + ageJalali.m + (ageJalali.d / 30.4375);
-  const ageYears = ageMonthsPrecise / 12;
-
-  const heightM = heightCm / 100;
-  const bmi = weightKg / Math.pow(heightM, 2);
-  const activityFactor = parseFloat(activitySelect.value || "1.55");
-
-  renderBMIResult(ageYears, bmi);
-  renderGrowthResult(ageMonthsPrecise, bmi, selectedGender);
-  renderMetabolismResult(ageYears, heightCm, weightKg, selectedGender, activityFactor);
-
-  showToast("محاسبات با موفقیت انجام شد.");
-});
-
-downloadBtn.addEventListener("click", () => {
-  const reportCard = document.getElementById("reportCard");
-
-  if (typeof html2pdf === "undefined") {
-    showToast("کتابخانه PDF بارگذاری نشده است. مطمئن شوید فایل «js/html2pdf.bundle.min.js» در پروژه وجود دارد.");
-    return;
-  }
-
-  const opt = {
-    margin: [0.8, 0.6, 0.8, 0.6],
-    filename: `Komaketim-Report-${Date.now()}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: {
-      scale: 2.2,
-      useCORS: true,
-      backgroundColor: "#0f172a"
-    },
-    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["avoid-all"] }
-  };
-
-  html2pdf().set(opt).from(reportCard).save()
-    .catch(() => {
-      showToast("خطا در تولید PDF. لطفاً دوباره تلاش کنید.");
-    });
-});
-
-function isValidInput(height, weight) {
-  return height > 0 && weight > 0;
+function isJalaliLeapYear(jy) {
+  const a = jy - 474;
+  const b = mod(a, 2820);
+  return mod(b + 474 + 38, 2820) < 682;
 }
 
-function renderBMIResult(ageYears, bmi) {
-  const category = getBMICategory(ageYears, bmi);
-  bmiResult.innerHTML = `
-    <div>شاخص توده بدنی (BMI): <strong>${bmi.toFixed(1)}</strong></div>
-    <div>طبقه‌بندی: <strong>${category.label}</strong></div>
-    <div class="muted">${category.description}</div>
-  `;
+function mod(a, b) {
+  return ((a % b) + b) % b;
 }
-
-function renderGrowthResult(ageMonths, bmi, gender) {
-  if (ageMonths < 61) {
-    growthResult.innerHTML = `
-      <div>این محاسبه برای سنین زیر ۵ سال در دسترس نیست.</div>
-      <div class="muted">در صورت نیاز از جدول‌های رشد مخصوص نوزادان و کودکان خردسال استفاده کنید.</div>
-    `;
-    return;
-  }
-  if (ageMonths > 228) {
-    growthResult.innerHTML = `
-      <div>آیا سنتان بالای ۱۹ سال است؟</div>
-      <div class="muted">محاسبات رشد کودک/نوجوان در بازه ۵ تا ۱۹ سال انجام می‌شود.</div>
-    `;
-    return;
-  }
-
-  const roundedAge = Math.round(ageMonths);
-  const key = `${roundedAge}`;
-  const atlas = gender === "male" ? LMS_MALE : LMS_FEMALE;
-  const data = atlas[key];
-
-  if (!data) {
-    growthResult.innerHTML = `
-      <div>اطلاعات مرجع برای سن ${roundedAge} ماه یافت نشد.</div>
-      <div class="muted">لطفاً تاریخ تولد را کمی تغییر دهید و مجدداً تلاش کنید.</div>
-    `;
-    return;
-  }
-
-  const { L, M, S } = data;
-  const zScore = calculateZScore(bmi, L, M, S);
-  const interpretation = interpretZScore(zScore);
-
-  growthResult.innerHTML = `
-    <div>Z-Score BMI-for-Age: <strong>${zScore.toFixed(2)}</strong></div>
-    <div>سطح رشد: <strong>${interpretation.status}</strong></div>
-    <div class="muted">${interpretation.message}</div>
-  `;
-}
-
-function renderMetabolismResult(ageYears, heightCm, weightKg, gender, activityFactor) {
-  const bmr = calculateBMR(gender, weightKg, heightCm, ageYears);
-  const tdee = bmr * activityFactor;
-
-  metabolismResult.innerHTML = `
-    <div>BMR (متابولیسم پایه): <strong>${Math.round(bmr)} kcal</strong></div>
-    <div>TDEE (کالری روزانه): <strong>${Math.round(tdee)} kcal</strong></div>
-    <div class="muted">سطح فعالیت در نظر گرفته شده: <strong>${activityLabel(activityFactor)}</strong></div>
-  `;
-}
-
-function getBMICategory(ageYears, bmi) {
-  if (ageYears < 20) {
-    return {
-      label: "برای تفسیر دقیق از Z-Score استفاده می‌شود",
-      description: "بازه سنی شما زیر ۲۰ سال است؛ نتیجه اصلی در بخش رشد کودک/نوجوان نمایش داده شده."
-    };
-  }
-  if (bmi < 18.5) return { label: "کمبود وزن", description: "وزن شما کمتر از محدوده استاندارد است. مشاوره تغذیه پیشنهاد می‌شود." };
-  if (bmi < 25) return { label: "طبیعی", description: "شاخص توده بدنی در محدوده سالم قرار دارد." };
-  if (bmi < 30) return { label: "اضافه وزن", description: "وزن شما بالاتر از محدوده استاندارد است. به تعادل تغذیه و فعالیت بدنی توجه کنید." };
-  return { label: "چاقی", description: "شاخص BMI بالا است. برنامه‌ریزی تغذیه و فعالیت با نظر متخصص توصیه می‌شود." };
-}
-
-function calculateBMR(gender, weight, height, age) {
-  if (gender === "male") {
-    return 10 * weight + 6.25 * height - 5 * age + 5;
-  }
-  return 10 * weight + 6.25 * height - 5 * age - 161;
-}
-
-function calculateZScore(value, L, M, S) {
-  if (L !== 0) {
-    return (Math.pow(value / M, L) - 1) / (L * S);
-  }
-  return Math.log(value / M) / S;
-}
-
-function interpretZScore(z) {
-  if (z < -3) return { status: "کمبود شدید", message: "نیاز به بررسی فوری وضعیت تغذیه‌ای و رشد وجود دارد." };
-  if (z >= -3 && z < -2) return { status: "کمبود وزن", message: "رشد کمتر از حد انتظار است. پیگیری با متخصص پیشنهاد می‌شود." };
-  if (z >= -2 && z <= 1) return { status: "رشد طبیعی", message: "رشد در محدوده سالم قرار دارد." };
-  if (z > 1 && z <= 2) return { status: "اضافه وزن", message: "در حال افزایش وزن بالاتر از محدوده طبیعی هستید. نظارت ضروری است." };
-  return { status: "چاقی", message: "شاخص رشد بالا است. حتماً با متخصص مشورت کنید." };
-}
-
-function activityLabel(factor) {
-  const mapping = {
-    "1.2": "بی‌تحرک",
-    "1.375": "فعالیت سبک",
-    "1.55": "فعالیت متوسط",
-    "1.725": "فعال",
-    "1.9": "بسیار فعال"
-  };
-  return mapping[factor.toString()] || "فعالیت متوسط";
-}
-
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("show");
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 3000);
-}
-
-/* ---------- Jalali Utilities ---------- */
-
-function initYearList() {
-  const dl = document.getElementById("yearList");
-  const today = new Date();
-  const jy = gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate()).jy;
-
-  const start = jy - 120;
-  for (let y = jy; y >= start; y--) {
-    const opt = document.createElement("option");
-    opt.value = y;
-    dl.appendChild(opt);
-  }
-}
-
-function updateDayOptions() {
-  const y = parseInt(yearInput.value, 10);
-  const m = parseInt(monthSelect.value, 10);
-  const maxDay = getJalaliMonthDays(y, m);
-
-  daySelect.innerHTML = `<option value="">روز</option>`;
-  if (!maxDay) return;
-
-  for (let d = 1; d <= maxDay; d++) {
-    const opt = document.createElement("option");
-    opt.value = d;
-    opt.textContent = d;
-    daySelect.appendChild(opt);
-  }
-}
-
-function getJalaliMonthDays(jy, jm) {
-  if (!jy || !jm) return 0;
-  if (jm <= 6) return 31;
-  if (jm <= 11) return 30;
-  return isJalaliLeapYear(jy) ? 30 : 29;
-}
-
-function isValidJalaliDate(jy, jm, jd) {
-  if (!jy || !jm || !jd) return false;
-  if (jm < 1 || jm > 12) return false;
-  const max = getJalaliMonthDays(jy, jm);
-  return jd >= 1 && jd <= max;
-}
-
-function diffJalali(jy, jm, jd, todayGregorian) {
-  const tj = gregorianToJalali(todayGregorian.getFullYear(), todayGregorian.getMonth() + 1, todayGregorian.getDate());
-  let y = tj.jy - jy;
-  let m = tj.jm - jm;
-  let d = tj.jd - jd;
-
-  if (d < 0) {
-    m -= 1;
-    const prevMonthDays = getJalaliMonthDays(jy + y, ((tj.jm - 1) < 1 ? 12 : tj.jm - 1));
-    d += prevMonthDays;
-  }
-
-  if (m < 0) {
-    y -= 1;
-    m += 12;
-  }
-
-  return { y, m, d };
-}
-
-/* -------- jalaali conversion (pure JS) -------- */
 
 function jalaliToGregorian(jy, jm, jd) {
-  jy += 1595;
-  let days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) + jd;
+  jy = parseInt(jy, 10);
+  jm = parseInt(jm, 10);
+  jd = parseInt(jd, 10);
 
-  if (jm < 7) days += (jm - 1) * 31;
-  else days += ((jm - 7) * 30) + 186;
+  let gy;
+  if (jy > 979) {
+    gy = 1600;
+    jy -= 979;
+  } else {
+    gy = 621;
+  }
 
-  let gy = 400 * Math.floor(days / 146097);
+  let days = (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4);
+  for (let i = 1; i < jm; ++i) days += jalaliMonthDays(jy, i);
+  days += jd - 1;
+
+  gy += 400 * Math.floor(days / 146097);
   days %= 146097;
 
   if (days > 36524) {
@@ -306,80 +50,273 @@ function jalaliToGregorian(jy, jm, jd) {
     days = (days - 1) % 365;
   }
 
-  let gd = days + 1;
-  const sal_a = [0,31, (isGregorianLeap(gy)?29:28),31,30,31,30,31,31,30,31,30,31];
-  let gm = 1;
-  while (gm <= 12 && gd > sal_a[gm]) {
-    gd -= sal_a[gm];
-    gm++;
+  const gd = days + 1;
+  const sal_a = [0,31, (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0) ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
+  let gm = 0;
+  let dayCount = gd;
+  for (gm = 1; gm <= 12; gm++) {
+    if (dayCount <= sal_a[gm]) break;
+    dayCount -= sal_a[gm];
   }
-  return { gy, gm, gd };
+  return { gy, gm, gd: dayCount };
 }
 
 function gregorianToJalali(gy, gm, gd) {
-  const g_d_m = [0,31,28,31,30,31,30,31,31,30,31,30,31];
-  let jy = (gy <= 1600) ? 0 : 979;
-  gy -= (gy <= 1600) ? 621 : 1600;
-
-  let gy2 = (gm > 2) ? (gy + 1) : gy;
-  let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd;
-
-  for (let i = 0; i < gm; ++i) days += g_d_m[i];
-
-  jy += 33 * Math.floor(days / 12053);
-  days %= 12053;
-  jy += 4 * Math.floor(days / 1461);
-  days %= 1461;
-
-  if (days > 365) {
-    jy += Math.floor((days - 1) / 365);
-    days = (days - 1) % 365;
+  let jy;
+  if (gy > 1600) {
+    jy = 979;
+    gy -= 1600;
+  } else {
+    jy = 0;
+    gy -= 621;
   }
 
-  let jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  let jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+  let days = (365 * gy) + Math.floor((gy + 3) / 4) - Math.floor((gy + 99) / 100) + Math.floor((gy + 399) / 400);
+  const gdm = [0,31,28,31,30,31,30,31,31,30,31,30,31];
+  for (let i = 1; i < gm; ++i) days += gdm[i];
+  if (gm > 2 && ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0))) days++;
 
-  return { jy, jm, jd };
-}
+  days += gd - 1;
 
-function isJalaliLeapYear(jy) {
-  const breaks = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
-  let bl = breaks.length;
-  let gy = jy + 621;
-  let leapJ = -14;
-  let jp = breaks[0];
-  let jm, jump, leap, n, i;
+  let jDayNo = days - 79;
 
-  if (jy < jp || jy >= breaks[bl - 1]) return false;
+  const jNp = Math.floor(jDayNo / 12053);
+  jDayNo %= 12053;
 
-  for (i = 1; i < bl; i += 1) {
-    jm = breaks[i];
-    jump = jm - jp;
-    if (jy < jm) break;
-    leapJ += Math.floor(jump / 33) * 8 + Math.floor((jump % 33) / 4);
-    jp = jm;
+  jy += 33 * jNp + 4 * Math.floor(jDayNo / 1461);
+  jDayNo %= 1461;
+
+  if (jDayNo >= 366) {
+    jy += Math.floor((jDayNo - 1) / 365);
+    jDayNo = (jDayNo - 1) % 365;
   }
 
-  n = jy - jp;
-  leapJ += Math.floor(n / 33) * 8 + Math.floor(((n % 33) + 3) / 4);
+  let jm, jd;
+  for (jm = 1; jm <= 12; jm++) {
+    const daysInMonth = jalaliMonthDays(jy, jm);
+    if (jDayNo < daysInMonth) break;
+    jDayNo -= daysInMonth;
+  }
+  jd = jDayNo + 1;
 
-  if (jump % 33 === 4 && jump - n === 4) leapJ += 1;
-
-  let leapG = Math.floor(gy / 4) - Math.floor(((gy / 100) + 1) * 3 / 4) - 150;
-  let march = 20 + leapJ - leapG;
-
-  if (jump - n < 6) n = n - jump + Math.floor((jump + 4) / 33) * 33;
-
-  leap = (((n + 1) % 33) - 1) % 4;
-  if (leap === -1) leap = 4;
-
-  return leap === 0;
+  return { jy: jy + 1, jm, jd };
 }
 
-function isGregorianLeap(gy) {
-  return (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
+function jalaliMonthDays(jy, jm) {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return isJalaliLeapYear(jy) ? 30 : 29;
 }
 
-/* -------- Placeholder LMS data (replace with real data) -------- */
-const LMS_MALE = {};
-const LMS_FEMALE = {};
+function diffJalali(jy, jm, jd, toGy, toGm, toGd) {
+  const birth = jalaliToGregorian(jy, jm, jd);
+  let y = toGy - birth.gy;
+  let m = toGm - birth.gm;
+  let d = toGd - birth.gd;
+
+  if (d < 0) {
+    m -= 1;
+    const prevMonth = toGm - 1 <= 0 ? 12 : toGm - 1;
+    const prevYear = prevMonth === 12 ? toGy - 1 : toGy;
+    d += daysInGregorianMonth(prevYear, prevMonth);
+  }
+  if (m < 0) {
+    y -= 1;
+    m += 12;
+  }
+  return { years: y, months: m, days: d };
+}
+
+function daysInGregorianMonth(gy, gm) {
+  const md = [31,28,31,30,31,30,31,31,30,31,30,31];
+  if (gm === 2 && ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0))) return 29;
+  return md[gm - 1];
+}
+
+// ===========================
+// LMS Helpers
+// ===========================
+function getLMSRecord(ageMonths, isMale) {
+  const month = Math.floor(Number(ageMonths));
+  const map = isMale ? window.LMS?.boys : window.LMS?.girls;
+  if (!map || !(map instanceof Map)) return null;
+  if (month < 61 || month > 228) return null;
+  return map.get(month) || null;
+}
+
+function calcZScore(bmi, L, M, S) {
+  if (L === 0) return Math.log(bmi / M) / S;
+  return (Math.pow(bmi / M, L) - 1) / (L * S);
+}
+
+function classifyZScore(z) {
+  if (z < -3) return "بشدت لاغر";
+  if (z < -2) return "لاغر";
+  if (z <= 1) return "نرمال";
+  if (z <= 2) return "اضافه‌وزن";
+  return "چاق";
+}
+
+// ===========================
+// UI Init
+// ===========================
+const yearsList = document.getElementById("yearsList");
+const birthYear = document.getElementById("birthYear");
+const birthMonth = document.getElementById("birthMonth");
+const birthDay = document.getElementById("birthDay");
+
+const heightInput = document.getElementById("height");
+const weightInput = document.getElementById("weight");
+const activity = document.getElementById("activity");
+
+const genderFemale = document.getElementById("genderFemale");
+const genderMale = document.getElementById("genderMale");
+let gender = "female";
+
+function initYears() {
+  const now = new Date();
+  const g = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const currentJY = g.jy;
+
+  yearsList.innerHTML = "";
+  for (let y = currentJY; y >= currentJY - 120; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    yearsList.appendChild(opt);
+  }
+}
+
+function initMonths() {
+  birthMonth.innerHTML = "";
+  jalaliMonths.forEach((m, i) => {
+    const opt = document.createElement("option");
+    opt.value = i + 1;
+    opt.textContent = m;
+    birthMonth.appendChild(opt);
+  });
+}
+
+function updateDays() {
+  const jy = Number(birthYear.value);
+  const jm = Number(birthMonth.value);
+  if (!jy || !jm) return;
+  const maxDays = jalaliMonthDays(jy, jm);
+  birthDay.innerHTML = "";
+  for (let d = 1; d <= maxDays; d++) {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    birthDay.appendChild(opt);
+  }
+}
+
+genderFemale.addEventListener("click", () => {
+  gender = "female";
+  genderFemale.classList.add("active");
+  genderMale.classList.remove("active");
+});
+
+genderMale.addEventListener("click", () => {
+  gender = "male";
+  genderMale.classList.add("active");
+  genderFemale.classList.remove("active");
+});
+
+birthYear.addEventListener("input", updateDays);
+birthMonth.addEventListener("change", updateDays);
+
+// ===========================
+// Calculations
+// ===========================
+function calculate() {
+  const jy = Number(birthYear.value);
+  const jm = Number(birthMonth.value);
+  const jd = Number(birthDay.value);
+
+  const h = Number(heightInput.value);
+  const w = Number(weightInput.value);
+  const act = Number(activity.value);
+
+  const exactAgeResult = document.getElementById("exactAgeResult");
+  const bmiResult = document.getElementById("bmiResult");
+  const zScoreResult = document.getElementById("zScoreResult");
+  const bmrResult = document.getElementById("bmrResult");
+  const tdeeResult = document.getElementById("tdeeResult");
+
+  if (!jy || !jm || !jd || !h || !w) {
+    exactAgeResult.textContent = "سن دقیق: —";
+    bmiResult.textContent = "شاخص توده بدنی (BMI): —";
+    zScoreResult.textContent = "طبقه‌بندی: —";
+    bmrResult.textContent = "BMR (متابولیسم پایه): —";
+    tdeeResult.textContent = "TDEE (کالری روزانه): —";
+    return;
+  }
+
+  const now = new Date();
+  const age = diffJalali(jy, jm, jd, now.getFullYear(), now.getMonth() + 1, now.getDate());
+  exactAgeResult.textContent = `سن دقیق: ${age.years} سال، ${age.months} ماه، ${age.days} روز`;
+
+  const heightM = h / 100;
+  const bmi = w / (heightM * heightM);
+  bmiResult.textContent = `شاخص توده بدنی (BMI): ${bmi.toFixed(1)}`;
+
+  const ageMonths = age.years * 12 + age.months;
+  if (ageMonths >= 61 && ageMonths <= 228) {
+    const lms = getLMSRecord(ageMonths, gender === "male");
+    if (!lms) {
+      zScoreResult.textContent = `اطلاعات مرجع برای سن ${ageMonths} ماه یافت نشد.`;
+    } else {
+      const z = calcZScore(bmi, lms.L, lms.M, lms.S);
+      const cat = classifyZScore(z);
+      zScoreResult.textContent = `طبقه‌بندی بر اساس Z-Score: ${cat} (Z=${z.toFixed(2)})`;
+    }
+  } else {
+    zScoreResult.textContent = "طبقه‌بندی: برای بزرگسالان از جدول Z-Score استفاده نمی‌شود.";
+  }
+
+  // BMR: Mifflin-St Jeor
+  const ageYears = age.years;
+  let bmr;
+  if (gender === "male") {
+    bmr = 10 * w + 6.25 * h - 5 * ageYears + 5;
+  } else {
+    bmr = 10 * w + 6.25 * h - 5 * ageYears - 161;
+  }
+
+  const tdee = bmr * act;
+  bmrResult.textContent = `BMR (متابولیسم پایه): ${Math.round(bmr)} kcal`;
+  tdeeResult.textContent = `TDEE (کالری روزانه): ${Math.round(tdee)} kcal`;
+}
+
+document.getElementById("calcBtn").addEventListener("click", calculate);
+
+// ===========================
+// PDF Export
+// ===========================
+document.getElementById("pdfBtn").addEventListener("click", () => {
+  const hint = document.getElementById("pdfHint");
+
+  if (typeof html2pdf === "undefined") {
+    hint.textContent = "خطا: کتابخانه PDF لود نشده است. لطفاً فایل js/html2pdf.bundle.min.js را کامل و صحیح قرار دهید.";
+    return;
+  }
+
+  const element = document.getElementById("resultsCard");
+  const opt = {
+    margin: 0.4,
+    filename: `Komaketim-Report-${Date.now()}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: "#0c1120" },
+    jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
+  };
+
+  html2pdf().set(opt).from(element).save();
+  hint.textContent = "";
+});
+
+// ===========================
+// Init
+// ===========================
+initYears();
+initMonths();
+updateDays();
