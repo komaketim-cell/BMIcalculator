@@ -1,62 +1,147 @@
-* { box-sizing: border-box; }
-body {
-  font-family: "Vazirmatn", sans-serif;
-  margin: 0;
-  background: #f6f7fb;
-  color: #1f2937;
-}
-.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-
-.site-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 24px; background: #fff; border-bottom: 1px solid #e5e7eb;
-}
-.brand { display: flex; align-items: center; gap: 12px; }
-.logo { width: 56px; height: 56px; object-fit: contain; }
-.logo.small { width: 44px; height: 44px; }
-.brand-text h1 { margin: 0; font-size: 22px; }
-.brand-text p { margin: 2px 0 0; font-size: 13px; color: #6b7280; }
-
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab-btn {
-  padding: 10px 16px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer;
-  border-radius: 8px; font-weight: 600;
-}
-.tab-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
-
-.tab-section { display: none; background: #fff; padding: 16px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 16px; }
-.tab-section.active { display: block; }
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-  margin: 12px 0;
-}
-.form-field label { display: block; font-size: 14px; margin-bottom: 6px; }
-.form-field input, .form-field select {
-  width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px;
+:root{
+  --primary:#06b6d4;
+  --secondary:#3b82f6;
+  --accent:#f97316;
+  --dark:#0f172a;
+  --light:#f8fafc;
+  --text:#0b1220;
+  --muted:#64748b;
+  --card:#ffffff;
+  --shadow:0 20px 40px rgba(2, 8, 23, 0.12);
+  --radius:18px;
 }
 
-.btn {
-  padding: 10px 16px; border: none; border-radius: 8px; background: #111827; color: #fff; cursor: pointer;
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Vazirmatn",sans-serif;
+  background: linear-gradient(120deg, #f0f9ff 0%, #fef3c7 100%);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
 }
-.btn.primary { background: #16a34a; }
 
-.result-card {
-  margin-top: 12px; padding: 12px; border-radius: 10px; background: #f9fafb; border: 1px solid #e5e7eb;
+.bg-glow{
+  position:fixed;
+  width:420px;height:420px;
+  filter:blur(120px);
+  opacity:.35;
+  z-index:-1;
 }
-.hidden { display: none; }
+.bg-glow-1{background:#06b6d4; top:-100px; right:-80px;}
+.bg-glow-2{background:#f97316; bottom:-120px; left:-60px;}
 
-.pdf-area {
-  background: #fff; border: 1px dashed #cbd5e1; padding: 16px; border-radius: 12px;
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:24px 6%;
 }
-.pdf-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.pdf-title h2 { margin: 0; font-size: 18px; }
-.pdf-title p { margin: 4px 0 0; font-size: 12px; color: #6b7280; }
-.pdf-date { font-size: 12px; color: #6b7280; }
-.pdf-block { margin-top: 12px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc; }
+.brand{display:flex; align-items:center; gap:14px;}
+.logo{
+  width:56px; height:56px; border-radius:14px; object-fit:contain;
+  box-shadow:0 10px 20px rgba(0,0,0,.1);
+  background:white; padding:6px;
+}
+.brand-text h1{font-size:22px; font-weight:800;}
+.brand-text p{font-size:12px; color:var(--muted);}
 
-.site-footer {
-  text-align: center; padding: 16px; font-size: 12px; color: #6b7280;
+.cta-btn{
+  background:linear-gradient(90deg,var(--primary),var(--secondary));
+  color:white; padding:10px 18px; border-radius:999px;
+  text-decoration:none; font-weight:700; box-shadow:var(--shadow);
+  transition:.3s;
+}
+.cta-btn:hover{transform:translateY(-2px);}
+
+.container{padding:10px 6% 50px;}
+.hero{
+  display:grid; grid-template-columns:1.1fr .9fr; gap:30px;
+  background:white; padding:32px; border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.hero-content h2{font-size:28px; margin-bottom:10px;}
+.hero-content p{color:var(--muted); line-height:1.8;}
+.hero-actions{margin-top:18px; display:flex; align-items:center; gap:14px;}
+.badge{
+  background: #ecfeff;
+  color:#0891b2;
+  padding:6px 12px; border-radius:999px; font-weight:700;
+}
+
+.hero-card{
+  display:grid; gap:12px;
+}
+.stat{
+  background:linear-gradient(120deg,#f0f9ff,#fef3c7);
+  padding:14px; border-radius:14px; border:1px solid #e2e8f0;
+  display:flex; justify-content:space-between; align-items:center;
+  font-weight:700;
+}
+
+.calculator{
+  margin-top:30px;
+  background:white; padding:28px; border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+.tab-btn{
+  padding:10px 18px; border-radius:999px; border:1px solid #e2e8f0;
+  background:#f8fafc; font-weight:700; cursor:pointer;
+  transition:.2s;
+}
+.tab-btn.active{
+  background:linear-gradient(90deg,var(--primary),var(--secondary));
+  color:white; border:none;
+}
+
+.panel{display:none;}
+.panel.active{display:block;}
+
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px; margin:16px 0;
+}
+.field label{font-weight:700; display:block; margin-bottom:6px;}
+.field input, .field select{
+  width:100%; padding:12px 12px;
+  border-radius:12px; border:1px solid #e2e8f0;
+  font-family:"Vazirmatn"; font-size:14px;
+  transition:.2s;
+}
+.field input:focus, .field select:focus{
+  outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(6,182,212,.15);
+}
+
+.primary-btn{
+  background:linear-gradient(90deg,var(--primary),var(--secondary));
+  color:white; padding:12px 20px; border:none; border-radius:12px;
+  font-weight:800; cursor:pointer; box-shadow:var(--shadow);
+}
+.secondary-btn{
+  background:linear-gradient(90deg,var(--accent),#fb923c);
+  color:white; padding:12px 20px; border:none; border-radius:12px;
+  font-weight:800; cursor:pointer; box-shadow:var(--shadow);
+}
+
+.result-card{
+  margin-top:16px;
+  background: #f8fafc; border:1px solid #e2e8f0;
+  padding:14px; border-radius:12px; color:var(--text);
+  min-height:52px;
+}
+
+.pdf-section{margin-top:30px;}
+.pdf-card{
+  background:white; padding:24px; border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+.footer{
+  margin-top:30px; text-align:center; color:var(--muted);
+  padding:20px;
+}
+
+@media (max-width:960px){
+  .hero{grid-template-columns:1fr;}
+  .topbar{flex-direction:column; gap:14px;}
 }
