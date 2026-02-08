@@ -85,7 +85,7 @@ downloadBtn.addEventListener("click", () => {
     html2canvas: {
       scale: 2.2,
       useCORS: true,
-      backgroundColor: "#0f172a",
+      backgroundColor: "#0f172a"
     },
     jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["avoid-all"] }
@@ -379,3 +379,7 @@ function isJalaliLeapYear(jy) {
 function isGregorianLeap(gy) {
   return (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
 }
+
+/* -------- Placeholder LMS data (replace with real data) -------- */
+const LMS_MALE = {};
+const LMS_FEMALE = {};
