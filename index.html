@@ -11,7 +11,6 @@
 </head>
 <body>
 
-  <!-- جلوه‌های نوری پس‌زمینه -->
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
   <div class="orb orb-3"></div>
@@ -21,7 +20,7 @@
       <img src="assets/logo.png" alt="لوگوی کمکتیم" class="brand-logo">
       <div>
         <h1 class="brand-title">کمکتیم</h1>
-        <p class="brand-subtitle">محاسبه‌گر لوکس سلامت | Komaketim.ir</p>
+        <p class="brand-subtitle">Komaketim.ir</p>
       </div>
     </div>
     <a class="ghost-btn" href="https://komaketim.ir" target="_blank" rel="noopener">مشاهده سایت</a>
@@ -33,8 +32,8 @@
       <div class="hero-text">
         <span class="status-pill">نسخه پیشرفته 2026</span>
         <h2>همه محاسبات سلامت فقط با سه عدد</h2>
-        <p>سن، قد و وزن را وارد کنید؛ الگوریتم‌های استاندارد WHO و Mifflin–St Jeor همه چیز را برای شما به‌صورت دقیق و حرفه‌ای محاسبه می‌کنند.</p>
-        <button className="primary-btn" id="scrollToCalculator">شروع سریع محاسبه</button>
+        <p>تاریخ تولد، قد و وزن را وارد کنید؛ الگوریتم‌های استاندارد WHO و Mifflin–St Jeor همه چیز را دقیق و حرفه‌ای محاسبه می‌کنند.</p>
+        <button class="primary-btn" id="scrollToCalculator">شروع سریع محاسبه</button>
       </div>
       <div class="hero-insights">
         <div class="insight-card">
@@ -45,23 +44,19 @@
           <span>رشد کودک/نوجوان</span>
           <strong>WHO Z-Score (۵ تا ۱۹ سال)</strong>
         </div>
-        <div class="insight-card">
-          <span>خروجی حرفه‌ای</span>
-          <strong>PDF با برند کمکتیم</strong>
-        </div>
       </div>
     </section>
 
     <section class="calculator glass" id="calculatorSection">
       <div class="calculator-head">
         <h3>ورود اطلاعات کلی</h3>
-        <p>فقط سن، قد و وزن را وارد کنید؛ محاسبات تخصصی به صورت خودکار انجام می‌شود.</p>
+        <p>فقط تاریخ تولد، قد و وزن را وارد کنید؛ محاسبات تخصصی به صورت خودکار انجام می‌شود.</p>
       </div>
 
       <div class="input-grid">
         <div class="input-field">
-          <label for="ageInput">سن (سال)</label>
-          <input type="number" id="ageInput" placeholder="مثلاً 25" min="1" step="0.1">
+          <label for="dobInput">تاریخ تولد (میلادی)</label>
+          <input type="date" id="dobInput" />
         </div>
 
         <div class="input-field">
@@ -105,7 +100,7 @@
     <section class="results glass" id="reportCard">
       <div class="results-head">
         <h3>نتایج سلامت شما</h3>
-        <p>خلاصه کامل وضعیت براساس سن، قد و وزن وارد شده.</p>
+        <p>خلاصه کامل وضعیت براساس تاریخ تولد، قد و وزن وارد شده.</p>
       </div>
 
       <div class="results-grid">
@@ -139,7 +134,6 @@
       <div class="pdf-inner">
         <div>
           <h3>دانلود گزارش PDF</h3>
-          <p>خلاصه نتایج با ذکر نام و لوگوی کمکتیم، آماده ارائه به متخصص یا ذخیره‌سازی.</p>
         </div>
         <button class="secondary-btn" id="downloadPDF">دانلود PDF برند شده</button>
       </div>
@@ -156,6 +150,5 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIPQnh1cwQYqujzUZxJjm+rXhN3kLBXjg5eQof8I4eAbOe+tfLOcAfeUeawuO/HEdBDEuDfSU/EYEsaJtjNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="js/lms.js"></script>
   <script src="js/app.js"></script>
-
 </body>
 </html>
