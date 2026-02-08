@@ -4,170 +4,158 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>محاسبه‌گر سلامت | کمکتیم</title>
-  <meta name="description" content="محاسبه BMI، BMR، TDEE و Z-Score کودک/نوجوان بر اساس استاندارد WHO">
+  <meta name="description" content="محاسبه BMI، BMR، TDEE و Z-Score کودک/نوجوان بر اساس استاندارد WHO توسط کمکتیم">
   <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="css/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Background glow -->
-  <div class="bg-glow bg-glow-1"></div>
-  <div class="bg-glow bg-glow-2"></div>
+  <!-- جلوه‌های نوری پس‌زمینه -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/logo.png" alt="کمکتیم" class="logo">
-      <div class="brand-text">
-        <h1>کمکتیم</h1>
-        <p>محاسبه‌گر هوشمند سلامت | Komaketim.ir</p>
+  <header class="app-header glass">
+    <div class="brand-block">
+      <img src="assets/logo.png" alt="لوگوی کمکتیم" class="brand-logo">
+      <div>
+        <h1 class="brand-title">کمکتیم</h1>
+        <p class="brand-subtitle">محاسبه‌گر لوکس سلامت | Komaketim.ir</p>
       </div>
     </div>
-    <a class="cta-btn" href="https://komaketim.ir" target="_blank" rel="noopener">ورود به سایت</a>
+    <a class="ghost-btn" href="https://komaketim.ir" target="_blank" rel="noopener">مشاهده سایت</a>
   </header>
 
-  <main class="container">
+  <main class="content">
 
-    <section class="hero">
-      <div class="hero-content">
-        <h2>محاسبات دقیق سلامت با استاندارد جهانی</h2>
-        <p>محاسبه BMI بزرگسال، Z-Score کودک/نوجوان (WHO)، BMR و TDEE با خروجی PDF حرفه‌ای</p>
-        <div class="hero-actions">
-          <button class="primary-btn" id="scrollToCalc">شروع محاسبه</button>
-          <span class="badge">نسخه کامل</span>
-        </div>
+    <section class="hero glass">
+      <div class="hero-text">
+        <span class="status-pill">نسخه پیشرفته 2026</span>
+        <h2>همه محاسبات سلامت فقط با سه عدد</h2>
+        <p>سن، قد و وزن را وارد کنید؛ الگوریتم‌های استاندارد WHO و Mifflin–St Jeor همه چیز را برای شما به‌صورت دقیق و حرفه‌ای محاسبه می‌کنند.</p>
+        <button className="primary-btn" id="scrollToCalculator">شروع سریع محاسبه</button>
       </div>
-      <div class="hero-card">
-        <div class="stat">
-          <span>فرمول BMR</span>
+      <div class="hero-insights">
+        <div class="insight-card">
+          <span>فرمول متابولیسم</span>
           <strong>Mifflin–St Jeor</strong>
         </div>
-        <div class="stat">
-          <span>بازه کودک/نوجوان</span>
-          <strong>۶۱ تا ۲۲۸ ماه</strong>
+        <div class="insight-card">
+          <span>رشد کودک/نوجوان</span>
+          <strong>WHO Z-Score (۵ تا ۱۹ سال)</strong>
         </div>
-        <div class="stat">
-          <span>استاندارد رشد</span>
-          <strong>WHO (Z-Score)</strong>
+        <div class="insight-card">
+          <span>خروجی حرفه‌ای</span>
+          <strong>PDF با برند کمکتیم</strong>
         </div>
       </div>
     </section>
 
-    <section class="calculator" id="calculator">
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="adult">بزرگسال</button>
-        <button class="tab-btn" data-tab="child">کودک/نوجوان (۵–۱۹ سال)</button>
-        <button class="tab-btn" data-tab="bmr">BMR & TDEE</button>
+    <section class="calculator glass" id="calculatorSection">
+      <div class="calculator-head">
+        <h3>ورود اطلاعات کلی</h3>
+        <p>فقط سن، قد و وزن را وارد کنید؛ محاسبات تخصصی به صورت خودکار انجام می‌شود.</p>
       </div>
 
-      <div class="tab-panels">
-
-        <!-- Adult BMI -->
-        <div class="panel active" id="adult">
-          <h3>محاسبه BMI بزرگسال</h3>
-          <div class="grid">
-            <div class="field">
-              <label>قد (سانتی‌متر)</label>
-              <input type="number" id="adultHeight" placeholder="مثلاً 170">
-            </div>
-            <div class="field">
-              <label>وزن (کیلوگرم)</label>
-              <input type="number" id="adultWeight" placeholder="مثلاً 70">
-            </div>
-          </div>
-          <button class="primary-btn" id="adultCalc">محاسبه</button>
-          <div class="result-card" id="adultResult"></div>
+      <div class="input-grid">
+        <div class="input-field">
+          <label for="ageInput">سن (سال)</label>
+          <input type="number" id="ageInput" placeholder="مثلاً 25" min="1" step="0.1">
         </div>
 
-        <!-- Child/Teen WHO -->
-        <div class="panel" id="child">
-          <h3>محاسبه Z-Score کودک/نوجوان (WHO)</h3>
-          <div class="grid">
-            <div class="field">
-              <label>جنسیت</label>
-              <select id="childGender">
-                <option value="male">پسر</option>
-                <option value="female">دختر</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>سن (ماه)</label>
-              <input type="number" id="childAgeMonths" placeholder="مثلاً 120">
-            </div>
-            <div class="field">
-              <label>قد (سانتی‌متر)</label>
-              <input type="number" id="childHeight" placeholder="مثلاً 140">
-            </div>
-            <div class="field">
-              <label>وزن (کیلوگرم)</label>
-              <input type="number" id="childWeight" placeholder="مثلاً 35">
-            </div>
+        <div class="input-field">
+          <label>جنسیت</label>
+          <div class="gender-toggle" id="genderToggle">
+            <button type="button" data-gender="male" class="gender-btn active">مذکر</button>
+            <button type="button" data-gender="female" class="gender-btn">مونث</button>
           </div>
-          <button class="primary-btn" id="childCalc">محاسبه</button>
-          <div class="result-card" id="childResult"></div>
         </div>
 
-        <!-- BMR & TDEE -->
-        <div class="panel" id="bmr">
-          <h3>محاسبه BMR و TDEE</h3>
-          <div class="grid">
-            <div class="field">
-              <label>جنسیت</label>
-              <select id="bmrGender">
-                <option value="male">مرد</option>
-                <option value="female">زن</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>سن (سال)</label>
-              <input type="number" id="bmrAge" placeholder="مثلاً 30">
-            </div>
-            <div class="field">
-              <label>قد (سانتی‌متر)</label>
-              <input type="number" id="bmrHeight" placeholder="مثلاً 170">
-            </div>
-            <div class="field">
-              <label>وزن (کیلوگرم)</label>
-              <input type="number" id="bmrWeight" placeholder="مثلاً 70">
-            </div>
-            <div class="field">
-              <label>سطح فعالیت</label>
-              <select id="activityLevel">
-                <option value="1.2">بی‌تحرک (1.2)</option>
-                <option value="1.375">کم‌تحرک (1.375)</option>
-                <option value="1.55">متوسط (1.55)</option>
-                <option value="1.725">پر‌تحرک (1.725)</option>
-                <option value="1.9">بسیار پرتحرک (1.9)</option>
-              </select>
-            </div>
-          </div>
-          <button class="primary-btn" id="bmrCalc">محاسبه</button>
-          <div class="result-card" id="bmrResult"></div>
+        <div class="input-field">
+          <label for="heightInput">قد (سانتی‌متر)</label>
+          <input type="number" id="heightInput" placeholder="مثلاً 172" min="30" step="0.1">
         </div>
 
+        <div class="input-field">
+          <label for="weightInput">وزن (کیلوگرم)</label>
+          <input type="number" id="weightInput" placeholder="مثلاً 68" min="2" step="0.1">
+        </div>
+      </div>
+
+      <details class="advanced">
+        <summary>تنظیمات پیشرفته فعالیت بدنی (اختیاری)</summary>
+        <div class="advanced-inner">
+          <label for="activityLevel">سطح فعالیت</label>
+          <select id="activityLevel">
+            <option value="1.2">بی‌تحرک (1.2)</option>
+            <option value="1.375">فعالیت سبک (1.375)</option>
+            <option value="1.55" selected>فعالیت متوسط (1.55)</option>
+            <option value="1.725">فعال (1.725)</option>
+            <option value="1.9">بسیار فعال (1.9)</option>
+          </select>
+          <p class="hint">در صورت عدم انتخاب، فعالیت «متوسط» در نظر گرفته می‌شود.</p>
+        </div>
+      </details>
+
+      <button class="primary-btn calc-btn" id="calculateBtn">محاسبه خودکار</button>
+      <p class="note">در بازه سنی ۵ تا ۱۹ سال، محاسبات رشد کودک/نوجوان بر اساس Z-Score استاندارد WHO انجام می‌شود.</p>
+    </section>
+
+    <section class="results glass" id="reportCard">
+      <div class="results-head">
+        <h3>نتایج سلامت شما</h3>
+        <p>خلاصه کامل وضعیت براساس سن، قد و وزن وارد شده.</p>
+      </div>
+
+      <div class="results-grid">
+        <div class="result-card" id="bmiCard">
+          <div class="card-top">
+            <span class="card-icon">⚖️</span>
+            <h4>BMI و شاخص توده بدنی</h4>
+          </div>
+          <div class="card-body" id="bmiResult">ابتدا اطلاعات را وارد کنید.</div>
+        </div>
+
+        <div class="result-card" id="growthCard">
+          <div class="card-top">
+            <span class="card-icon">📈</span>
+            <h4>ارزیابی رشد کودک/نوجوان</h4>
+          </div>
+          <div class="card-body" id="growthResult">در صورت قرار داشتن در بازه ۵ تا ۱۹ سال، نتیجه اینجا نمایش داده می‌شود.</div>
+        </div>
+
+        <div class="result-card" id="metabolismCard">
+          <div class="card-top">
+            <span class="card-icon">🔥</span>
+            <h4>BMR و TDEE</h4>
+          </div>
+          <div class="card-body" id="metabolismResult">میزان متابولیسم پایه و کالری روزانه پس از محاسبه در اینجا قرار می‌گیرد.</div>
+        </div>
       </div>
     </section>
 
-    <section class="pdf-section">
-      <div class="pdf-card">
-        <h3>خروجی PDF حرفه‌ای</h3>
-        <p>گزارش محاسبات با ذکر نام سایت و لوگو آماده دانلود است.</p>
-        <button class="secondary-btn" id="downloadPDF">دانلود PDF</button>
+    <section class="pdf glass">
+      <div class="pdf-inner">
+        <div>
+          <h3>دانلود گزارش PDF</h3>
+          <p>خلاصه نتایج با ذکر نام و لوگوی کمکتیم، آماده ارائه به متخصص یا ذخیره‌سازی.</p>
+        </div>
+        <button class="secondary-btn" id="downloadPDF">دانلود PDF برند شده</button>
       </div>
     </section>
 
   </main>
 
   <footer class="footer">
-    <p>© 2026 Komaketim.ir - تمامی حقوق محفوظ است.</p>
+    <p>© 2026 Komaketim.ir – تمام حقوق برای کمکتیم محفوظ است.</p>
   </footer>
 
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIPQnh1cwQYqujzUZxJjm+rXhN3kLBXjg5eQof8I4eAbOe+tfLOcAfeUeawuO/HEdBDEuDfSU/EYEsaJtjNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="js/lms.js"></script>
   <script src="js/app.js"></script>
-  <script>
-    document.getElementById("scrollToCalc").addEventListener("click", () => {
-      document.getElementById("calculator").scrollIntoView({ behavior: "smooth" });
-    });
-  </script>
+
 </body>
 </html>
