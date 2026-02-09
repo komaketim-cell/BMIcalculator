@@ -78,42 +78,31 @@ downloadBtn.addEventListener("click", () => {
     return;
   }
 
+  document.body.classList.add("pdf-mode");
+
   const opt = {
-    margin: [0.8, 0.6, 0.8, 0.6],
+    margin: [8, 8, 8, 8],
     filename: `Komaketim-Report-${Date.now()}.pdf`,
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: {
-      scale: 2.2,
+      scale: 2,
       useCORS: true,
-      backgroundColor: "#0f172a"
+      backgroundColor: "#ffffff"
     },
-    jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["avoid-all"] }
-  };
-
- const pdfBtn = document.getElementById("downloadPdf");
-pdfBtn.addEventListener("click", () => {
-  document.body.classList.add("pdf-mode");
-
-  const element = document.querySelector(".page"); // یا بخش اصلی سایت
-
-  const opt = {
-    margin: 8,
-    filename: "report.pdf",
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, backgroundColor: "#ffffff" },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
   };
 
   html2pdf()
     .set(opt)
-    .from(element)
+    .from(reportCard)
     .save()
     .then(() => {
       document.body.classList.remove("pdf-mode");
+    })
+    .catch(() => {
+      document.body.classList.remove("pdf-mode");
     });
 });
-
 
 function isValidInput(height, weight) {
   return height > 0 && weight > 0;
@@ -398,6 +387,3 @@ function isGregorianLeap(gy) {
   return (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
 }
 
-/* -------- Placeholder LMS data (replace with real data) -------- */
-const LMS_MALE = {};
-const LMS_FEMALE = {};
