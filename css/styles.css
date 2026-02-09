@@ -202,13 +202,3 @@ input:focus, select:focus {
     grid-template-columns: 1fr;
   }
 }
-
-select option {
-  background: #0f172a;
-  color: #f8fafc;
-}
-
-/* حالت PDF برای تضمین دیده‌شدن متن */
-.pdf-mode, .pdf-mode * {
-  color: #0b1220 !important;
-}
