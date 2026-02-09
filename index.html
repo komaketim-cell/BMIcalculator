@@ -1,93 +1,83 @@
-<!doctype html>
-<html lang="fa" dir="rtl">
+<!DOCTYPE html>
+<html lang="fa">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>کمکتیم | Komaketim.ir</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>محاسبه BMI، BMR، TDEE و سن دقیق</title>
   <link rel="stylesheet" href="css/styles.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="page">
-    <header class="hero">
-      <div class="hero__inner">
-        <h1 class="hero__title">محاسبه BMI، BMR، TDEE و سن دقیق</h1>
-        <p class="hero__subtitle">با وارد کردن تاریخ تولد شمسی، قد، وزن و سطح فعالیت، نتایج دقیق و قابل دانلود دریافت کنید.</p>
+  <main class="container" id="report-root">
+    <section class="panel results">
+      <h2>نتایج</h2>
+
+      <div class="card" id="ageExact">سن دقیق: —</div>
+      <div class="card" id="bmi">شاخص توده بدنی (BMI): —</div>
+
+      <!-- کادر جایگزین اطلاعات مرجع: نمایش میزان کمبود/اضافه وزن -->
+      <div class="card" id="weightDeviation">میزان کمبود/اضافه وزن: —</div>
+
+      <!-- Z-Score -->
+      <div class="card" id="zscore">Z-Score (BMI برای سن): —</div>
+
+      <!-- BMR / TDEE -->
+      <div class="card" id="bmr">BMR (متابولیسم پایه): —</div>
+      <div class="card" id="tdee">TDEE (کالری روزانه): —</div>
+
+      <!-- سه کادر کالری هدف -->
+      <div class="card" id="cal-maintain">کالری ثابت نگه داشتن وزن: —</div>
+      <div class="card" id="cal-gain">کالری افزایش وزن و حجم عضلات: —</div>
+      <div class="card" id="cal-cut">کالری کاهش وزن بدون افت عضلات: —</div>
+
+      <button class="pdf-btn" id="btnPdf">دانلود نتایج (PDF)</button>
+      <small class="hint">برای خروجی PDF، فایل js/html2pdf.bundle.min.js را به‌درستی اضافه کنید.</small>
+    </section>
+
+    <section class="panel inputs">
+      <h2>اطلاعات پایه</h2>
+
+      <div class="row">
+        <label>جنسیت</label>
+        <div class="toggle">
+          <button type="button" data-sex="male" class="toggle-btn active">پسر</button>
+          <button type="button" data-sex="female" class="toggle-btn">دختر</button>
+        </div>
       </div>
-    </header>
 
-    <main class="grid">
-      <section class="card form-card">
-        <h2 class="card__title">اطلاعات پایه</h2>
-
-        <div class="field">
-          <label class="label">جنسیت</label>
-          <div class="toggle">
-            <button class="toggle__btn active" data-gender="female" id="genderFemale">دختر</button>
-            <button class="toggle__btn" data-gender="male" id="genderMale">پسر</button>
-          </div>
+      <div class="row">
+        <label>تاریخ تولد (شمسی)</label>
+        <div class="date-grid">
+          <select id="day"></select>
+          <select id="month"></select>
+          <input id="year" type="number" placeholder="سال" min="1300" max="1500" />
         </div>
+      </div>
 
-        <div class="field">
-          <label class="label">تاریخ تولد (شمسی)</label>
-          <div class="birth-grid">
-            <input class="input input--year" type="text" id="birthYear" list="yearsList" placeholder="سال" />
-            <datalist id="yearsList"></datalist>
+      <div class="row">
+        <label>قد (سانتی‌متر)</label>
+        <input id="height" type="number" placeholder="مثلاً 165" min="50" max="250" />
+      </div>
 
-            <select class="input" id="birthMonth"></select>
-            <select class="input" id="birthDay"></select>
-          </div>
-        </div>
+      <div class="row">
+        <label>وزن (کیلوگرم)</label>
+        <input id="weight" type="number" placeholder="مثلاً 55" min="5" max="300" step="0.1" />
+      </div>
 
-        <div class="field">
-          <label class="label">قد (سانتی‌متر)</label>
-          <input class="input" type="number" id="height" placeholder="مثلاً 175" />
-        </div>
+      <div class="row">
+        <label>سطح فعالیت</label>
+        <select id="activity">
+          <option value="1.2">کم‌تحرک</option>
+          <option value="1.375">فعال سبک</option>
+          <option value="1.55" selected>فعال متوسط</option>
+          <option value="1.725">فعال زیاد</option>
+          <option value="1.9">بسیار فعال</option>
+        </select>
+      </div>
 
-        <div class="field">
-          <label class="label">وزن (کیلوگرم)</label>
-          <input class="input" type="number" id="weight" placeholder="مثلاً 58" />
-        </div>
+      <button id="btnCalc" class="primary">محاسبه خودکار</button>
+    </section>
+  </main>
 
-        <div class="field">
-          <label class="label">سطح فعالیت</label>
-          <select class="input input--activity" id="activity">
-            <option value="1.2">کم‌تحرک</option>
-            <option value="1.375">کم‌فعال</option>
-            <option value="1.55" selected>فعال متوسط</option>
-            <option value="1.725">بسیار فعال</option>
-            <option value="1.9">فوق‌العاده فعال</option>
-          </select>
-        </div>
-
-        <button class="btn btn--primary" id="calcBtn">محاسبه خودکار</button>
-      </section>
-
-      <section class="card results-card" id="resultsCard">
-        <h2 class="card__title">نتایج</h2>
-
-        <div class="result-box" id="exactAgeResult">سن دقیق: —</div>
-
-        <div class="result-box" id="bmiResult">شاخص توده بدنی (BMI): —</div>
-
-        <div class="result-box result-box--note" id="zScoreResult">
-          طبقه‌بندی: —  
-          برای تفسیر دقیق در سنین ۵ تا ۱۹ سال، Z-Score استفاده می‌شود.
-        </div>
-
-        <div class="result-box" id="bmrResult">BMR (متابولیسم پایه): —</div>
-        <div class="result-box" id="tdeeResult">TDEE (کالری روزانه): —</div>
-
-        <button class="btn btn--ghost" id="pdfBtn">دانلود نتایج (PDF)</button>
-        <div class="hint" id="pdfHint"></div>
-      </section>
-    </main>
-  </div>
-
-  <!-- PDF library must be loaded BEFORE app.js -->
   <script src="js/html2pdf.bundle.min.js"></script>
   <script src="js/app.js"></script>
 </body>
