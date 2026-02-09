@@ -1,371 +1,587 @@
-// ===================== LMS DATA =====================
-function parseLmsNumber(v) {
-  // تبدیل "15/2441" -> 15.2441
-  // تبدیل "-0/8886" -> -0.8886
-  return Number(String(v).replace("/", "."));
+// ========================= Utils =========================
+const $ = (sel) => document.querySelector(sel);
+const fmt = (n, d=1) => Number.isFinite(n) ? Number(n).toFixed(d) : "—";
+const today = new Date();
+
+// Jalali → Gregorian (from jalaali-js, inlined)
+function jalaliToGregorian(jy, jm, jd){
+  jy = +jy; jm = +jm; jd = +jd;
+  const breaks = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,1701,1706,1799,1992,2093,2199];
+  const bl = breaks.length, gp = jy + 621;
+  let leapJ = -14, jp = breaks[0], jm2, n, i;
+  for (i=1;i<bl;i++){ jm2 = breaks[i]; n = jm2 - jp; if (jy < jm2) break; leapJ += Math.floor(n/33)*8 + Math.floor((n%33+3)/4); jp = jm2; }
+  n = jy - jp; leapJ += Math.floor(n/33)*8 + Math.floor((n%33+3)/4);
+  let leapG = Math.floor(gp/4) - Math.floor((gp/100)) + Math.floor((gp/400));
+  let march = 20 + leapG - leapJ;
+  let gY = gp, gM, gD;
+  const jDays = (jm<=7)?((jm-1)*31 + jd-1):((jm-7)*30 + jd + 185 -1);
+  const gDayNo = march + jDays;
+  if (gDayNo <= 186) {
+    gM = Math.ceil(gDayNo/31);
+    gD = gDayNo - (gM-1)*31;
+  } else {
+    gM = Math.ceil((gDayNo-186)/30)+6;
+    gD = gDayNo - 186 - (gM-7)*30;
+  }
+  return [gY, gM, gD];
 }
+
+// Age exact (years, months, days) and completed months for LMS
+function calcAgeExact(jy, jm, jd){
+  const [gy, gm, gd] = jalaliToGregorian(jy, jm, jd);
+  const birth = new Date(gy, gm-1, gd);
+  let y = today.getFullYear() - birth.getFullYear();
+  let m = today.getMonth() - birth.getMonth();
+  let d = today.getDate() - birth.getDate();
+  if (d < 0){
+    const prevMonthDays = new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    d += prevMonthDays; m -= 1;
+  }
+  if (m < 0){ m += 12; y -= 1; }
+  const completedMonths = (today.getFullYear() - birth.getFullYear())*12 + (today.getMonth() - birth.getMonth()) - (today.getDate() < birth.getDate() ? 1 : 0);
+  return { years:y, months:m, days:d, ageMonths:completedMonths, birthDate:birth };
+}
+
+// BMI
+function calcBMI(heightCm, weightKg){
+  const h = Number(heightCm)/100;
+  const w = Number(weightKg);
+  if (!h || !w) return NaN;
+  return w / (h*h);
+}
+
+// Mifflin–St Jeor BMR
+function calcBMR(sex, heightCm, weightKg, ageYears){
+  const s = sex === "male" ? 5 : -161;
+  return 10*Number(weightKg) + 6.25*Number(heightCm) - 5*Number(ageYears) + s;
+}
+
+// ========================= LMS Data =========================
+function parseLmsNumber(v){ return Number(String(v).replace("/", ".")); }
 
 window.LMS = {
   girls: new Map([
-    [61, { L: parseLmsNumber("-0/8886"), M: parseLmsNumber("15/2441"), S: parseLmsNumber("0/09692") }],
-    [62, { L: parseLmsNumber("-0/9068"), M: parseLmsNumber("15/2434"), S: parseLmsNumber("0/09738") }],
-    [63, { L: parseLmsNumber("-0/9248"), M: parseLmsNumber("15/2433"), S: parseLmsNumber("0/09783") }],
-    [64, { L: parseLmsNumber("-0/9427"), M: parseLmsNumber("15/2438"), S: parseLmsNumber("0/09829") }],
-    [65, { L: parseLmsNumber("-0/9605"), M: parseLmsNumber("15/2448"), S: parseLmsNumber("0/09875") }],
-    [66, { L: parseLmsNumber("-0/978"), M: parseLmsNumber("15/2464"), S: parseLmsNumber("0/0992") }],
-    [67, { L: parseLmsNumber("-0/9954"), M: parseLmsNumber("15/2487"), S: parseLmsNumber("0/09966") }],
-    [68, { L: parseLmsNumber("-1/0126"), M: parseLmsNumber("15/2516"), S: parseLmsNumber("0/10012") }],
-    [69, { L: parseLmsNumber("-1/0296"), M: parseLmsNumber("15/2551"), S: parseLmsNumber("0/10058") }],
-    [70, { L: parseLmsNumber("-1/0464"), M: parseLmsNumber("15/2592"), S: parseLmsNumber("0/10104") }],
-    [71, { L: parseLmsNumber("-1/063"), M: parseLmsNumber("15/2641"), S: parseLmsNumber("0/10149") }],
-    [72, { L: parseLmsNumber("-1/0794"), M: parseLmsNumber("15/2697"), S: parseLmsNumber("0/10195") }],
-    [73, { L: parseLmsNumber("-1/0956"), M: parseLmsNumber("15/276"), S: parseLmsNumber("0/10241") }],
-    [74, { L: parseLmsNumber("-1/1115"), M: parseLmsNumber("15/2831"), S: parseLmsNumber("0/10287") }],
-    [75, { L: parseLmsNumber("-1/1272"), M: parseLmsNumber("15/2911"), S: parseLmsNumber("0/10333") }],
-    [76, { L: parseLmsNumber("-1/1427"), M: parseLmsNumber("15/2998"), S: parseLmsNumber("0/10379") }],
-    [77, { L: parseLmsNumber("-1/1579"), M: parseLmsNumber("15/3095"), S: parseLmsNumber("0/10425") }],
-    [78, { L: parseLmsNumber("-1/1728"), M: parseLmsNumber("15/32"), S: parseLmsNumber("0/10471") }],
-    [79, { L: parseLmsNumber("-1/1875"), M: parseLmsNumber("15/3314"), S: parseLmsNumber("0/10517") }],
-    [80, { L: parseLmsNumber("-1/2019"), M: parseLmsNumber("15/3439"), S: parseLmsNumber("0/10562") }],
-    [81, { L: parseLmsNumber("-1/216"), M: parseLmsNumber("15/3572"), S: parseLmsNumber("0/10608") }],
-    [82, { L: parseLmsNumber("-1/2298"), M: parseLmsNumber("15/3717"), S: parseLmsNumber("0/10654") }],
-    [83, { L: parseLmsNumber("-1/2433"), M: parseLmsNumber("15/3871"), S: parseLmsNumber("0/107") }],
-    [84, { L: parseLmsNumber("-1/2565"), M: parseLmsNumber("15/4036"), S: parseLmsNumber("0/10746") }],
-    [85, { L: parseLmsNumber("-1/2693"), M: parseLmsNumber("15/4211"), S: parseLmsNumber("0/10792") }],
-    [86, { L: parseLmsNumber("-1/2819"), M: parseLmsNumber("15/4397"), S: parseLmsNumber("0/10837") }],
-    [87, { L: parseLmsNumber("-1/2941"), M: parseLmsNumber("15/4593"), S: parseLmsNumber("0/10883") }],
-    [88, { L: parseLmsNumber("-1/306"), M: parseLmsNumber("15/4798"), S: parseLmsNumber("0/10929") }],
-    [89, { L: parseLmsNumber("-1/3175"), M: parseLmsNumber("15/5014"), S: parseLmsNumber("0/10974") }],
-    [90, { L: parseLmsNumber("-1/3287"), M: parseLmsNumber("15/524"), S: parseLmsNumber("0/1102") }],
-    [91, { L: parseLmsNumber("-1/3395"), M: parseLmsNumber("15/5476"), S: parseLmsNumber("0/11065") }],
-    [92, { L: parseLmsNumber("-1/3499"), M: parseLmsNumber("15/5723"), S: parseLmsNumber("0/1111") }],
-    [93, { L: parseLmsNumber("-1/36"), M: parseLmsNumber("15/5979"), S: parseLmsNumber("0/11156") }],
-    [94, { L: parseLmsNumber("-1/3697"), M: parseLmsNumber("15/6246"), S: parseLmsNumber("0/11201") }],
-    [95, { L: parseLmsNumber("-1/379"), M: parseLmsNumber("15/6523"), S: parseLmsNumber("0/11246") }],
-    [96, { L: parseLmsNumber("-1/388"), M: parseLmsNumber("15/681"), S: parseLmsNumber("0/11291") }],
-    [97, { L: parseLmsNumber("-1/3966"), M: parseLmsNumber("15/7107"), S: parseLmsNumber("0/11335") }],
-    [98, { L: parseLmsNumber("-1/4047"), M: parseLmsNumber("15/7415"), S: parseLmsNumber("0/1138") }],
-    [99, { L: parseLmsNumber("-1/4125"), M: parseLmsNumber("15/7732"), S: parseLmsNumber("0/11424") }],
-    [100, { L: parseLmsNumber("-1/4199"), M: parseLmsNumber("15/8058"), S: parseLmsNumber("0/11469") }],
-    [101, { L: parseLmsNumber("-1/427"), M: parseLmsNumber("15/8394"), S: parseLmsNumber("0/11513") }],
-    [102, { L: parseLmsNumber("-1/4336"), M: parseLmsNumber("15/8738"), S: parseLmsNumber("0/11557") }],
-    [103, { L: parseLmsNumber("-1/4398"), M: parseLmsNumber("15/909"), S: parseLmsNumber("0/11601") }],
-    [104, { L: parseLmsNumber("-1/4456"), M: parseLmsNumber("15/9451"), S: parseLmsNumber("0/11644") }],
-    [105, { L: parseLmsNumber("-1/4511"), M: parseLmsNumber("15/9818"), S: parseLmsNumber("0/11688") }],
-    [106, { L: parseLmsNumber("-1/4561"), M: parseLmsNumber("16/0194"), S: parseLmsNumber("0/11731") }],
-    [107, { L: parseLmsNumber("-1/4607"), M: parseLmsNumber("16/0575"), S: parseLmsNumber("0/11774") }],
-    [108, { L: parseLmsNumber("-1/465"), M: parseLmsNumber("16/0964"), S: parseLmsNumber("0/11816") }],
-    [109, { L: parseLmsNumber("-1/4688"), M: parseLmsNumber("16/1358"), S: parseLmsNumber("0/11859") }],
-    [110, { L: parseLmsNumber("-1/4723"), M: parseLmsNumber("16/1759"), S: parseLmsNumber("0/11901") }],
-    [111, { L: parseLmsNumber("-1/4753"), M: parseLmsNumber("16/2166"), S: parseLmsNumber("0/11943") }],
-    [112, { L: parseLmsNumber("-1/478"), M: parseLmsNumber("16/258"), S: parseLmsNumber("0/11985") }],
-    [113, { L: parseLmsNumber("-1/4803"), M: parseLmsNumber("16/2999"), S: parseLmsNumber("0/12026") }],
-    [114, { L: parseLmsNumber("-1/4823"), M: parseLmsNumber("16/3425"), S: parseLmsNumber("0/12067") }],
-    [115, { L: parseLmsNumber("-1/4838"), M: parseLmsNumber("16/3858"), S: parseLmsNumber("0/12108") }],
-    [116, { L: parseLmsNumber("-1/485"), M: parseLmsNumber("16/4298"), S: parseLmsNumber("0/12148") }],
-    [117, { L: parseLmsNumber("-1/4859"), M: parseLmsNumber("16/4746"), S: parseLmsNumber("0/12188") }],
-    [118, { L: parseLmsNumber("-1/4864"), M: parseLmsNumber("16/52"), S: parseLmsNumber("0/12228") }],
-    [119, { L: parseLmsNumber("-1/4866"), M: parseLmsNumber("16/5663"), S: parseLmsNumber("0/12268") }],
-    [120, { L: parseLmsNumber("-1/4864"), M: parseLmsNumber("16/6133"), S: parseLmsNumber("0/12307") }],
-    [121, { L: parseLmsNumber("-1/4859"), M: parseLmsNumber("16/6612"), S: parseLmsNumber("0/12346") }],
-    [122, { L: parseLmsNumber("-1/4851"), M: parseLmsNumber("16/71"), S: parseLmsNumber("0/12384") }],
-    [123, { L: parseLmsNumber("-1/4839"), M: parseLmsNumber("16/7595"), S: parseLmsNumber("0/12422") }],
-    [124, { L: parseLmsNumber("-1/4825"), M: parseLmsNumber("16/81"), S: parseLmsNumber("0/1246") }],
-    [125, { L: parseLmsNumber("-1/4807"), M: parseLmsNumber("16/8614"), S: parseLmsNumber("0/12497") }],
-    [126, { L: parseLmsNumber("-1/4787"), M: parseLmsNumber("16/9136"), S: parseLmsNumber("0/12534") }],
-    [127, { L: parseLmsNumber("-1/4763"), M: parseLmsNumber("16/9667"), S: parseLmsNumber("0/12571") }],
-    [128, { L: parseLmsNumber("-1/4737"), M: parseLmsNumber("17/0208"), S: parseLmsNumber("0/12607") }],
-    [129, { L: parseLmsNumber("-1/4708"), M: parseLmsNumber("17/0757"), S: parseLmsNumber("0/12643") }],
-    [130, { L: parseLmsNumber("-1/4677"), M: parseLmsNumber("17/1316"), S: parseLmsNumber("0/12678") }],
-    [131, { L: parseLmsNumber("-1/4642"), M: parseLmsNumber("17/1883"), S: parseLmsNumber("0/12713") }],
-    [132, { L: parseLmsNumber("-1/4606"), M: parseLmsNumber("17/2459"), S: parseLmsNumber("0/12748") }],
-    [133, { L: parseLmsNumber("-1/4567"), M: parseLmsNumber("17/3044"), S: parseLmsNumber("0/12782") }],
-    [134, { L: parseLmsNumber("-1/4526"), M: parseLmsNumber("17/3637"), S: parseLmsNumber("0/12816") }],
-    [135, { L: parseLmsNumber("-1/4482"), M: parseLmsNumber("17/4238"), S: parseLmsNumber("0/12849") }],
-    [136, { L: parseLmsNumber("-1/4436"), M: parseLmsNumber("17/4847"), S: parseLmsNumber("0/12882") }],
-    [137, { L: parseLmsNumber("-1/4389"), M: parseLmsNumber("17/5464"), S: parseLmsNumber("0/12914") }],
-    [138, { L: parseLmsNumber("-1/4339"), M: parseLmsNumber("17/6088"), S: parseLmsNumber("0/12946") }],
-    [139, { L: parseLmsNumber("-1/4288"), M: parseLmsNumber("17/6719"), S: parseLmsNumber("0/12978") }],
-    [140, { L: parseLmsNumber("-1/4235"), M: parseLmsNumber("17/7357"), S: parseLmsNumber("0/13009") }],
-    [141, { L: parseLmsNumber("-1/418"), M: parseLmsNumber("17/8001"), S: parseLmsNumber("0/1304") }],
-    [142, { L: parseLmsNumber("-1/4123"), M: parseLmsNumber("17/8651"), S: parseLmsNumber("0/1307") }],
-    [143, { L: parseLmsNumber("-1/4065"), M: parseLmsNumber("17/9306"), S: parseLmsNumber("0/13099") }],
-    [144, { L: parseLmsNumber("-1/4006"), M: parseLmsNumber("17/9966"), S: parseLmsNumber("0/13129") }],
-    [145, { L: parseLmsNumber("-1/3945"), M: parseLmsNumber("18/063"), S: parseLmsNumber("0/13158") }],
-    [146, { L: parseLmsNumber("-1/3883"), M: parseLmsNumber("18/1297"), S: parseLmsNumber("0/13186") }],
-    [147, { L: parseLmsNumber("-1/3819"), M: parseLmsNumber("18/1967"), S: parseLmsNumber("0/13214") }],
-    [148, { L: parseLmsNumber("-1/3755"), M: parseLmsNumber("18/2639"), S: parseLmsNumber("0/13241") }],
-    [149, { L: parseLmsNumber("-1/3689"), M: parseLmsNumber("18/3312"), S: parseLmsNumber("0/13268") }],
-    [150, { L: parseLmsNumber("-1/3621"), M: parseLmsNumber("18/3986"), S: parseLmsNumber("0/13295") }],
-    [151, { L: parseLmsNumber("-1/3553"), M: parseLmsNumber("18/466"), S: parseLmsNumber("0/13321") }],
-    [152, { L: parseLmsNumber("-1/3483"), M: parseLmsNumber("18/5333"), S: parseLmsNumber("0/13347") }],
-    [153, { L: parseLmsNumber("-1/3413"), M: parseLmsNumber("18/6006"), S: parseLmsNumber("0/13372") }],
-    [154, { L: parseLmsNumber("-1/3341"), M: parseLmsNumber("18/6677"), S: parseLmsNumber("0/13397") }],
-    [155, { L: parseLmsNumber("-1/3269"), M: parseLmsNumber("18/7346"), S: parseLmsNumber("0/13421") }],
-    [156, { L: parseLmsNumber("-1/3195"), M: parseLmsNumber("18/8012"), S: parseLmsNumber("0/13445") }],
-    [157, { L: parseLmsNumber("-1/3121"), M: parseLmsNumber("18/8675"), S: parseLmsNumber("0/13469") }],
-    [158, { L: parseLmsNumber("-1/3046"), M: parseLmsNumber("18/9335"), S: parseLmsNumber("0/13492") }],
-    [159, { L: parseLmsNumber("-1/297"), M: parseLmsNumber("18/9991"), S: parseLmsNumber("0/13514") }],
-    [160, { L: parseLmsNumber("-1/2894"), M: parseLmsNumber("19/0642"), S: parseLmsNumber("0/13537") }],
-    [161, { L: parseLmsNumber("-1/2816"), M: parseLmsNumber("19/1289"), S: parseLmsNumber("0/13559") }],
-    [162, { L: parseLmsNumber("-1/2739"), M: parseLmsNumber("19/1931"), S: parseLmsNumber("0/1358") }],
-    [163, { L: parseLmsNumber("-1/2661"), M: parseLmsNumber("19/2567"), S: parseLmsNumber("0/13601") }],
-    [164, { L: parseLmsNumber("-1/2583"), M: parseLmsNumber("19/3197"), S: parseLmsNumber("0/13622") }],
-    [165, { L: parseLmsNumber("-1/2504"), M: parseLmsNumber("19/382"), S: parseLmsNumber("0/13642") }],
-    [166, { L: parseLmsNumber("-1/2425"), M: parseLmsNumber("19/4437"), S: parseLmsNumber("0/13662") }],
-    [167, { L: parseLmsNumber("-1/2345"), M: parseLmsNumber("19/5045"), S: parseLmsNumber("0/13681") }],
-    [168, { L: parseLmsNumber("-1/2266"), M: parseLmsNumber("19/5647"), S: parseLmsNumber("0/137") }],
-    [169, { L: parseLmsNumber("-1/2186"), M: parseLmsNumber("19/624"), S: parseLmsNumber("0/13719") }],
-    [170, { L: parseLmsNumber("-1/2107"), M: parseLmsNumber("19/6824"), S: parseLmsNumber("0/13738") }],
-    [171, { L: parseLmsNumber("-1/2027"), M: parseLmsNumber("19/74"), S: parseLmsNumber("0/13756") }],
-    [172, { L: parseLmsNumber("-1/1947"), M: parseLmsNumber("19/7966"), S: parseLmsNumber("0/13774") }],
-    [173, { L: parseLmsNumber("-1/1867"), M: parseLmsNumber("19/8523"), S: parseLmsNumber("0/13791") }],
-    [174, { L: parseLmsNumber("-1/1788"), M: parseLmsNumber("19/907"), S: parseLmsNumber("0/13808") }],
-    [175, { L: parseLmsNumber("-1/1708"), M: parseLmsNumber("19/9607"), S: parseLmsNumber("0/13825") }],
-    [176, { L: parseLmsNumber("-1/1629"), M: parseLmsNumber("20/0133"), S: parseLmsNumber("0/13841") }],
-    [177, { L: parseLmsNumber("-1/1549"), M: parseLmsNumber("20/0648"), S: parseLmsNumber("0/13858") }],
-    [178, { L: parseLmsNumber("-1/147"), M: parseLmsNumber("20/1152"), S: parseLmsNumber("0/13873") }],
-    [179, { L: parseLmsNumber("-1/139"), M: parseLmsNumber("20/1644"), S: parseLmsNumber("0/13889") }],
-    [180, { L: parseLmsNumber("-1/1311"), M: parseLmsNumber("20/2125"), S: parseLmsNumber("0/13904") }],
-    [181, { L: parseLmsNumber("-1/1232"), M: parseLmsNumber("20/2595"), S: parseLmsNumber("0/1392") }],
-    [182, { L: parseLmsNumber("-1/1153"), M: parseLmsNumber("20/3053"), S: parseLmsNumber("0/13934") }],
-    [183, { L: parseLmsNumber("-1/1074"), M: parseLmsNumber("20/3499"), S: parseLmsNumber("0/13949") }],
-    [184, { L: parseLmsNumber("-1/0996"), M: parseLmsNumber("20/3934"), S: parseLmsNumber("0/13963") }],
-    [185, { L: parseLmsNumber("-1/0917"), M: parseLmsNumber("20/4357"), S: parseLmsNumber("0/13977") }],
-    [186, { L: parseLmsNumber("-1/0838"), M: parseLmsNumber("20/4769"), S: parseLmsNumber("0/13991") }],
-    [187, { L: parseLmsNumber("-1/076"), M: parseLmsNumber("20/517"), S: parseLmsNumber("0/14005") }],
-    [188, { L: parseLmsNumber("-1/0681"), M: parseLmsNumber("20/556"), S: parseLmsNumber("0/14018") }],
-    [189, { L: parseLmsNumber("-1/0603"), M: parseLmsNumber("20/5938"), S: parseLmsNumber("0/14031") }],
-    [190, { L: parseLmsNumber("-1/0525"), M: parseLmsNumber("20/6306"), S: parseLmsNumber("0/14044") }],
-    [191, { L: parseLmsNumber("-1/0447"), M: parseLmsNumber("20/6663"), S: parseLmsNumber("0/14057") }],
-    [192, { L: parseLmsNumber("-1/0368"), M: parseLmsNumber("20/7008"), S: parseLmsNumber("0/1407") }],
-    [193, { L: parseLmsNumber("-1/029"), M: parseLmsNumber("20/7344"), S: parseLmsNumber("0/14082") }],
-    [194, { L: parseLmsNumber("-1/0212"), M: parseLmsNumber("20/7668"), S: parseLmsNumber("0/14094") }],
-    [195, { L: parseLmsNumber("-1/0134"), M: parseLmsNumber("20/7982"), S: parseLmsNumber("0/14106") }],
-    [196, { L: parseLmsNumber("-1/0055"), M: parseLmsNumber("20/8286"), S: parseLmsNumber("0/14118") }],
-    [197, { L: parseLmsNumber("-0/9977"), M: parseLmsNumber("20/858"), S: parseLmsNumber("0/1413") }],
-    [198, { L: parseLmsNumber("-0/9898"), M: parseLmsNumber("20/8863"), S: parseLmsNumber("0/14142") }],
-    [199, { L: parseLmsNumber("-0/9819"), M: parseLmsNumber("20/9137"), S: parseLmsNumber("0/14153") }],
-    [200, { L: parseLmsNumber("-0/974"), M: parseLmsNumber("20/9401"), S: parseLmsNumber("0/14164") }],
-    [201, { L: parseLmsNumber("-0/9661"), M: parseLmsNumber("20/9656"), S: parseLmsNumber("0/14176") }],
-    [202, { L: parseLmsNumber("-0/9582"), M: parseLmsNumber("20/9901"), S: parseLmsNumber("0/14187") }],
-    [203, { L: parseLmsNumber("-0/9503"), M: parseLmsNumber("21/0138"), S: parseLmsNumber("0/14198") }],
-    [204, { L: parseLmsNumber("-0/9423"), M: parseLmsNumber("21/0367"), S: parseLmsNumber("0/14208") }],
-    [205, { L: parseLmsNumber("-0/9344"), M: parseLmsNumber("21/0587"), S: parseLmsNumber("0/14219") }],
-    [206, { L: parseLmsNumber("-0/9264"), M: parseLmsNumber("21/0801"), S: parseLmsNumber("0/1423") }],
-    [207, { L: parseLmsNumber("-0/9184"), M: parseLmsNumber("21/1007"), S: parseLmsNumber("0/1424") }],
-    [208, { L: parseLmsNumber("-0/9104"), M: parseLmsNumber("21/1206"), S: parseLmsNumber("0/1425") }],
-    [209, { L: parseLmsNumber("-0/9024"), M: parseLmsNumber("21/1399"), S: parseLmsNumber("0/14261") }],
-    [210, { L: parseLmsNumber("-0/8944"), M: parseLmsNumber("21/1586"), S: parseLmsNumber("0/14271") }],
-    [211, { L: parseLmsNumber("-0/8863"), M: parseLmsNumber("21/1768"), S: parseLmsNumber("0/14281") }],
-    [212, { L: parseLmsNumber("-0/8783"), M: parseLmsNumber("21/1944"), S: parseLmsNumber("0/14291") }],
-    [213, { L: parseLmsNumber("-0/8703"), M: parseLmsNumber("21/2116"), S: parseLmsNumber("0/14301") }],
-    [214, { L: parseLmsNumber("-0/8623"), M: parseLmsNumber("21/2282"), S: parseLmsNumber("0/14311") }],
-    [215, { L: parseLmsNumber("-0/8542"), M: parseLmsNumber("21/2444"), S: parseLmsNumber("0/1432") }],
-    [216, { L: parseLmsNumber("-0/8462"), M: parseLmsNumber("21/2603"), S: parseLmsNumber("0/1433") }],
-    [217, { L: parseLmsNumber("-0/8382"), M: parseLmsNumber("21/2757"), S: parseLmsNumber("0/1434") }],
-    [218, { L: parseLmsNumber("-0/8301"), M: parseLmsNumber("21/2908"), S: parseLmsNumber("0/14349") }],
-    [219, { L: parseLmsNumber("-0/8221"), M: parseLmsNumber("21/3055"), S: parseLmsNumber("0/14359") }],
-    [220, { L: parseLmsNumber("-0/814"), M: parseLmsNumber("21/32"), S: parseLmsNumber("0/14368") }],
-    [221, { L: parseLmsNumber("-0/806"), M: parseLmsNumber("21/3341"), S: parseLmsNumber("0/14377") }],
-    [222, { L: parseLmsNumber("-0/798"), M: parseLmsNumber("21/348"), S: parseLmsNumber("0/14386") }],
-    [223, { L: parseLmsNumber("-0/7899"), M: parseLmsNumber("21/3617"), S: parseLmsNumber("0/14396") }],
-    [224, { L: parseLmsNumber("-0/7819"), M: parseLmsNumber("21/3752"), S: parseLmsNumber("0/14405") }],
-    [225, { L: parseLmsNumber("-0/7738"), M: parseLmsNumber("21/3884"), S: parseLmsNumber("0/14414") }],
-    [226, { L: parseLmsNumber("-0/7658"), M: parseLmsNumber("21/4014"), S: parseLmsNumber("0/14423") }],
-    [227, { L: parseLmsNumber("-0/7577"), M: parseLmsNumber("21/4143"), S: parseLmsNumber("0/14432") }],
-    [228, { L: parseLmsNumber("-0/7496"), M: parseLmsNumber("21/4269"), S: parseLmsNumber("0/14441") }]
+    [61,{L:parseLmsNumber("-0/8886"),M:parseLmsNumber("15/2441"),S:parseLmsNumber("0/09692")}],
+    [62,{L:parseLmsNumber("-0/9068"),M:parseLmsNumber("15/2434"),S:parseLmsNumber("0/09738")}],
+    [63,{L:parseLmsNumber("-0/9248"),M:parseLmsNumber("15/2433"),S:parseLmsNumber("0/09783")}],
+    [64,{L:parseLmsNumber("-0/9427"),M:parseLmsNumber("15/2438"),S:parseLmsNumber("0/09829")}],
+    [65,{L:parseLmsNumber("-0/9605"),M:parseLmsNumber("15/2448"),S:parseLmsNumber("0/09875")}],
+    [66,{L:parseLmsNumber("-0/978"),M:parseLmsNumber("15/2464"),S:parseLmsNumber("0/0992")}],
+    [67,{L:parseLmsNumber("-0/9954"),M:parseLmsNumber("15/2487"),S:parseLmsNumber("0/09966")}],
+    [68,{L:parseLmsNumber("-1/0126"),M:parseLmsNumber("15/2516"),S:parseLmsNumber("0/10012")}],
+    [69,{L:parseLmsNumber("-1/0296"),M:parseLmsNumber("15/2551"),S:parseLmsNumber("0/10058")}],
+    [70,{L:parseLmsNumber("-1/0464"),M:parseLmsNumber("15/2592"),S:parseLmsNumber("0/10104")}],
+    [71,{L:parseLmsNumber("-1/063"),M:parseLmsNumber("15/2641"),S:parseLmsNumber("0/10149")}],
+    [72,{L:parseLmsNumber("-1/0794"),M:parseLmsNumber("15/2697"),S:parseLmsNumber("0/10195")}],
+    [73,{L:parseLmsNumber("-1/0956"),M:parseLmsNumber("15/276"),S:parseLmsNumber("0/10241")}],
+    [74,{L:parseLmsNumber("-1/1115"),M:parseLmsNumber("15/2831"),S:parseLmsNumber("0/10287")}],
+    [75,{L:parseLmsNumber("-1/1272"),M:parseLmsNumber("15/2911"),S:parseLmsNumber("0/10333")}],
+    [76,{L:parseLmsNumber("-1/1427"),M:parseLmsNumber("15/2998"),S:parseLmsNumber("0/10379")}],
+    [77,{L:parseLmsNumber("-1/1579"),M:parseLmsNumber("15/3095"),S:parseLmsNumber("0/10425")}],
+    [78,{L:parseLmsNumber("-1/1728"),M:parseLmsNumber("15/32"),S:parseLmsNumber("0/10471")}],
+    [79,{L:parseLmsNumber("-1/1875"),M:parseLmsNumber("15/3314"),S:parseLmsNumber("0/10517")}],
+    [80,{L:parseLmsNumber("-1/2019"),M:parseLmsNumber("15/3439"),S:parseLmsNumber("0/10562")}],
+    [81,{L:parseLmsNumber("-1/216"),M:parseLmsNumber("15/3572"),S:parseLmsNumber("0/10608")}],
+    [82,{L:parseLmsNumber("-1/2298"),M:parseLmsNumber("15/3717"),S:parseLmsNumber("0/10654")}],
+    [83,{L:parseLmsNumber("-1/2433"),M:parseLmsNumber("15/3871"),S:parseLmsNumber("0/107")}],
+    [84,{L:parseLmsNumber("-1/2565"),M:parseLmsNumber("15/4036"),S:parseLmsNumber("0/10746")}],
+    [85,{L:parseLmsNumber("-1/2693"),M:parseLmsNumber("15/4211"),S:parseLmsNumber("0/10792")}],
+    [86,{L:parseLmsNumber("-1/2819"),M:parseLmsNumber("15/4397"),S:parseLmsNumber("0/10837")}],
+    [87,{L:parseLmsNumber("-1/2941"),M:parseLmsNumber("15/4593"),S:parseLmsNumber("0/10883")}],
+    [88,{L:parseLmsNumber("-1/306"),M:parseLmsNumber("15/4798"),S:parseLmsNumber("0/10929")}],
+    [89,{L:parseLmsNumber("-1/3175"),M:parseLmsNumber("15/5014"),S:parseLmsNumber("0/10974")}],
+    [90,{L:parseLmsNumber("-1/3287"),M:parseLmsNumber("15/524"),S:parseLmsNumber("0/1102")}],
+    [91,{L:parseLmsNumber("-1/3395"),M:parseLmsNumber("15/5476"),S:parseLmsNumber("0/11065")}],
+    [92,{L:parseLmsNumber("-1/3499"),M:parseLmsNumber("15/5723"),S:parseLmsNumber("0/1111")}],
+    [93,{L:parseLmsNumber("-1/36"),M:parseLmsNumber("15/5979"),S:parseLmsNumber("0/11156")}],
+    [94,{L:parseLmsNumber("-1/3697"),M:parseLmsNumber("15/6246"),S:parseLmsNumber("0/11201")}],
+    [95,{L:parseLmsNumber("-1/379"),M:parseLmsNumber("15/6523"),S:parseLmsNumber("0/11246")}],
+    [96,{L:parseLmsNumber("-1/388"),M:parseLmsNumber("15/681"),S:parseLmsNumber("0/11291")}],
+    [97,{L:parseLmsNumber("-1/3966"),M:parseLmsNumber("15/7107"),S:parseLmsNumber("0/11335")}],
+    [98,{L:parseLmsNumber("-1/4047"),M:parseLmsNumber("15/7415"),S:parseLmsNumber("0/1138")}],
+    [99,{L:parseLmsNumber("-1/4125"),M:parseLmsNumber("15/7732"),S:parseLmsNumber("0/11424")}],
+    [100,{L:parseLmsNumber("-1/4199"),M:parseLmsNumber("15/8058"),S:parseLmsNumber("0/11469")}],
+    [101,{L:parseLmsNumber("-1/427"),M:parseLmsNumber("15/8394"),S:parseLmsNumber("0/11513")}],
+    [102,{L:parseLmsNumber("-1/4336"),M:parseLmsNumber("15/8738"),S:parseLmsNumber("0/11557")}],
+    [103,{L:parseLmsNumber("-1/4398"),M:parseLmsNumber("15/909"),S:parseLmsNumber("0/11601")}],
+    [104,{L:parseLmsNumber("-1/4456"),M:parseLmsNumber("15/9451"),S:parseLmsNumber("0/11644")}],
+    [105,{L:parseLmsNumber("-1/4511"),M:parseLmsNumber("15/9818"),S:parseLmsNumber("0/11688")}],
+    [106,{L:parseLmsNumber("-1/4561"),M:parseLmsNumber("16/0194"),S:parseLmsNumber("0/11731")}],
+    [107,{L:parseLmsNumber("-1/4607"),M:parseLmsNumber("16/0575"),S:parseLmsNumber("0/11774")}],
+    [108,{L:parseLmsNumber("-1/465"),M:parseLmsNumber("16/0964"),S:parseLmsNumber("0/11816")}],
+    [109,{L:parseLmsNumber("-1/4688"),M:parseLmsNumber("16/1358"),S:parseLmsNumber("0/11859")}],
+    [110,{L:parseLmsNumber("-1/4723"),M:parseLmsNumber("16/1759"),S:parseLmsNumber("0/11901")}],
+    [111,{L:parseLmsNumber("-1/4753"),M:parseLmsNumber("16/2166"),S:parseLmsNumber("0/11943")}],
+    [112,{L:parseLmsNumber("-1/478"),M:parseLmsNumber("16/258"),S:parseLmsNumber("0/11985")}],
+    [113,{L:parseLmsNumber("-1/4803"),M:parseLmsNumber("16/2999"),S:parseLmsNumber("0/12026")}],
+    [114,{L:parseLmsNumber("-1/4823"),M:parseLmsNumber("16/3425"),S:parseLmsNumber("0/12067")}],
+    [115,{L:parseLmsNumber("-1/4838"),M:parseLmsNumber("16/3858"),S:parseLmsNumber("0/12108")}],
+    [116,{L:parseLmsNumber("-1/485"),M:parseLmsNumber("16/4298"),S:parseLmsNumber("0/12148")}],
+    [117,{L:parseLmsNumber("-1/4859"),M:parseLmsNumber("16/4746"),S:parseLmsNumber("0/12188")}],
+    [118,{L:parseLmsNumber("-1/4864"),M:parseLmsNumber("16/52"),S:parseLmsNumber("0/12228")}],
+    [119,{L:parseLmsNumber("-1/4866"),M:parseLmsNumber("16/5663"),S:parseLmsNumber("0/12268")}],
+    [120,{L:parseLmsNumber("-1/4864"),M:parseLmsNumber("16/6133"),S:parseLmsNumber("0/12307")}],
+    [121,{L:parseLmsNumber("-1/4859"),M:parseLmsNumber("16/6612"),S:parseLmsNumber("0/12346")}],
+    [122,{L:parseLmsNumber("-1/4851"),M:parseLmsNumber("16/71"),S:parseLmsNumber("0/12384")}],
+    [123,{L:parseLmsNumber("-1/4839"),M:parseLmsNumber("16/7595"),S:parseLmsNumber("0/12422")}],
+    [124,{L:parseLmsNumber("-1/4825"),M:parseLmsNumber("16/81"),S:parseLmsNumber("0/1246")}],
+    [125,{L:parseLmsNumber("-1/4807"),M:parseLmsNumber("16/8614"),S:parseLmsNumber("0/12497")}],
+    [126,{L:parseLmsNumber("-1/4787"),M:parseLmsNumber("16/9136"),S:parseLmsNumber("0/12534")}],
+    [127,{L:parseLmsNumber("-1/4763"),M:parseLmsNumber("16/9667"),S:parseLmsNumber("0/12571")}],
+    [128,{L:parseLmsNumber("-1/4737"),M:parseLmsNumber("17/0208"),S:parseLmsNumber("0/12607")}],
+    [129,{L:parseLmsNumber("-1/4708"),M:parseLmsNumber("17/0757"),S:parseLmsNumber("0/12643")}],
+    [130,{L:parseLmsNumber("-1/4677"),M:parseLmsNumber("17/1316"),S:parseLmsNumber("0/12678")}],
+    [131,{L:parseLmsNumber("-1/4642"),M:parseLmsNumber("17/1883"),S:parseLmsNumber("0/12713")}],
+    [132,{L:parseLmsNumber("-1/4606"),M:parseLmsNumber("17/2459"),S:parseLmsNumber("0/12748")}],
+    [133,{L:parseLmsNumber("-1/4567"),M:parseLmsNumber("17/3044"),S:parseLmsNumber("0/12782")}],
+    [134,{L:parseLmsNumber("-1/4526"),M:parseLmsNumber("17/3637"),S:parseLmsNumber("0/12816")}],
+    [135,{L:parseLmsNumber("-1/4482"),M:parseLmsNumber("17/4238"),S:parseLmsNumber("0/12849")}],
+    [136,{L:parseLmsNumber("-1/4436"),M:parseLmsNumber("17/4847"),S:parseLmsNumber("0/12882")}],
+    [137,{L:parseLmsNumber("-1/4389"),M:parseLmsNumber("17/5464"),S:parseLmsNumber("0/12914")}],
+    [138,{L:parseLmsNumber("-1/4339"),M:parseLmsNumber("17/6088"),S:parseLmsNumber("0/12946")}],
+    [139,{L:parseLmsNumber("-1/4288"),M:parseLmsNumber("17/6719"),S:parseLmsNumber("0/12978")}],
+    [140,{L:parseLmsNumber("-1/4235"),M:parseLmsNumber("17/7357"),S:parseLmsNumber("0/13009")}],
+    [141,{L:parseLmsNumber("-1/418"),M:parseLmsNumber("17/8001"),S:parseLmsNumber("0/1304")}],
+    [142,{L:parseLmsNumber("-1/4123"),M:parseLmsNumber("17/8651"),S:parseLmsNumber("0/1307")}],
+    [143,{L:parseLmsNumber("-1/4065"),M:parseLmsNumber("17/9306"),S:parseLmsNumber("0/13099")}],
+    [144,{L:parseLmsNumber("-1/4006"),M:parseLmsNumber("17/9966"),S:parseLmsNumber("0/13129")}],
+    [145,{L:parseLmsNumber("-1/3945"),M:parseLmsNumber("18/063"),S:parseLmsNumber("0/13158")}],
+    [146,{L:parseLmsNumber("-1/3883"),M:parseLmsNumber("18/1297"),S:parseLmsNumber("0/13186")}],
+    [147,{L:parseLmsNumber("-1/3819"),M:parseLmsNumber("18/1967"),S:parseLmsNumber("0/13214")}],
+    [148,{L:parseLmsNumber("-1/3755"),M:parseLmsNumber("18/2639"),S:parseLmsNumber("0/13241")}],
+    [149,{L:parseLmsNumber("-1/3689"),M:parseLmsNumber("18/3312"),S:parseLmsNumber("0/13268")}],
+    [150,{L:parseLmsNumber("-1/3621"),M:parseLmsNumber("18/3986"),S:parseLmsNumber("0/13295")}],
+    [151,{L:parseLmsNumber("-1/3553"),M:parseLmsNumber("18/466"),S:parseLmsNumber("0/13321")}],
+    [152,{L:parseLmsNumber("-1/3483"),M:parseLmsNumber("18/5333"),S:parseLmsNumber("0/13347")}],
+    [153,{L:parseLmsNumber("-1/3413"),M:parseLmsNumber("18/6006"),S:parseLmsNumber("0/13372")}],
+    [154,{L:parseLmsNumber("-1/3341"),M:parseLmsNumber("18/6677"),S:parseLmsNumber("0/13397")}],
+    [155,{L:parseLmsNumber("-1/3269"),M:parseLmsNumber("18/7346"),S:parseLmsNumber("0/13421")}],
+    [156,{L:parseLmsNumber("-1/3195"),M:parseLmsNumber("18/8012"),S:parseLmsNumber("0/13445")}],
+    [157,{L:parseLmsNumber("-1/3121"),M:parseLmsNumber("18/8675"),S:parseLmsNumber("0/13469")}],
+    [158,{L:parseLmsNumber("-1/3046"),M:parseLmsNumber("18/9335"),S:parseLmsNumber("0/13492")}],
+    [159,{L:parseLmsNumber("-1/297"),M:parseLmsNumber("18/9991"),S:parseLmsNumber("0/13514")}],
+    [160,{L:parseLmsNumber("-1/2894"),M:parseLmsNumber("19/0642"),S:parseLmsNumber("0/13537")}],
+    [161,{L:parseLmsNumber("-1/2816"),M:parseLmsNumber("19/1289"),S:parseLmsNumber("0/13559")}],
+    [162,{L:parseLmsNumber("-1/2739"),M:parseLmsNumber("19/1931"),S:parseLmsNumber("0/1358")}],
+    [163,{L:parseLmsNumber("-1/2661"),M:parseLmsNumber("19/2567"),S:parseLmsNumber("0/13601")}],
+    [164,{L:parseLmsNumber("-1/2583"),M:parseLmsNumber("19/3197"),S:parseLmsNumber("0/13622")}],
+    [165,{L:parseLmsNumber("-1/2504"),M:parseLmsNumber("19/382"),S:parseLmsNumber("0/13642")}],
+    [166,{L:parseLmsNumber("-1/2425"),M:parseLmsNumber("19/4437"),S:parseLmsNumber("0/13662")}],
+    [167,{L:parseLmsNumber("-1/2345"),M:parseLmsNumber("19/5045"),S:parseLmsNumber("0/13681")}],
+    [168,{L:parseLmsNumber("-1/2266"),M:parseLmsNumber("19/5647"),S:parseLmsNumber("0/137")}],
+    [169,{L:parseLmsNumber("-1/2186"),M:parseLmsNumber("19/624"),S:parseLmsNumber("0/13719")}],
+    [170,{L:parseLmsNumber("-1/2107"),M:parseLmsNumber("19/6824"),S:parseLmsNumber("0/13738")}],
+    [171,{L:parseLmsNumber("-1/2027"),M:parseLmsNumber("19/74"),S:parseLmsNumber("0/13756")}],
+    [172,{L:parseLmsNumber("-1/1947"),M:parseLmsNumber("19/7966"),S:parseLmsNumber("0/13774")}],
+    [173,{L:parseLmsNumber("-1/1867"),M:parseLmsNumber("19/8523"),S:parseLmsNumber("0/13791")}],
+    [174,{L:parseLmsNumber("-1/1788"),M:parseLmsNumber("19/907"),S:parseLmsNumber("0/13808")}],
+    [175,{L:parseLmsNumber("-1/1708"),M:parseLmsNumber("19/9607"),S:parseLmsNumber("0/13825")}],
+    [176,{L:parseLmsNumber("-1/1629"),M:parseLmsNumber("20/0133"),S:parseLmsNumber("0/13841")}],
+    [177,{L:parseLmsNumber("-1/1549"),M:parseLmsNumber("20/0648"),S:parseLmsNumber("0/13858")}],
+    [178,{L:parseLmsNumber("-1/147"),M:parseLmsNumber("20/1152"),S:parseLmsNumber("0/13873")}],
+    [179,{L:parseLmsNumber("-1/139"),M:parseLmsNumber("20/1644"),S:parseLmsNumber("0/13889")}],
+    [180,{L:parseLmsNumber("-1/1311"),M:parseLmsNumber("20/2125"),S:parseLmsNumber("0/13904")}],
+    [181,{L:parseLmsNumber("-1/1232"),M:parseLmsNumber("20/2595"),S:parseLmsNumber("0/1392")}],
+    [182,{L:parseLmsNumber("-1/1153"),M:parseLmsNumber("20/3053"),S:parseLmsNumber("0/13934")}],
+    [183,{L:parseLmsNumber("-1/1074"),M:parseLmsNumber("20/3499"),S:parseLmsNumber("0/13949")}],
+    [184,{L:parseLmsNumber("-1/0996"),M:parseLmsNumber("20/3934"),S:parseLmsNumber("0/13963")}],
+    [185,{L:parseLmsNumber("-1/0917"),M:parseLmsNumber("20/4357"),S:parseLmsNumber("0/13977")}],
+    [186,{L:parseLmsNumber("-1/0838"),M:parseLmsNumber("20/4769"),S:parseLmsNumber("0/13991")}],
+    [187,{L:parseLmsNumber("-1/076"),M:parseLmsNumber("20/517"),S:parseLmsNumber("0/14005")}],
+    [188,{L:parseLmsNumber("-1/0681"),M:parseLmsNumber("20/556"),S:parseLmsNumber("0/14018")}],
+    [189,{L:parseLmsNumber("-1/0603"),M:parseLmsNumber("20/5938"),S:parseLmsNumber("0/14031")}],
+    [190,{L:parseLmsNumber("-1/0525"),M:parseLmsNumber("20/6306"),S:parseLmsNumber("0/14044")}],
+    [191,{L:parseLmsNumber("-1/0447"),M:parseLmsNumber("20/6663"),S:parseLmsNumber("0/14057")}],
+    [192,{L:parseLmsNumber("-1/0368"),M:parseLmsNumber("20/7008"),S:parseLmsNumber("0/1407")}],
+    [193,{L:parseLmsNumber("-1/029"),M:parseLmsNumber("20/7344"),S:parseLmsNumber("0/14082")}],
+    [194,{L:parseLmsNumber("-1/0212"),M:parseLmsNumber("20/7668"),S:parseLmsNumber("0/14094")}],
+    [195,{L:parseLmsNumber("-1/0134"),M:parseLmsNumber("20/7982"),S:parseLmsNumber("0/14106")}],
+    [196,{L:parseLmsNumber("-1/0055"),M:parseLmsNumber("20/8286"),S:parseLmsNumber("0/14118")}],
+    [197,{L:parseLmsNumber("-0/9977"),M:parseLmsNumber("20/858"),S:parseLmsNumber("0/1413")}],
+    [198,{L:parseLmsNumber("-0/9898"),M:parseLmsNumber("20/8863"),S:parseLmsNumber("0/14142")}],
+    [199,{L:parseLmsNumber("-0/9819"),M:parseLmsNumber("20/9137"),S:parseLmsNumber("0/14153")}],
+    [200,{L:parseLmsNumber("-0/974"),M:parseLmsNumber("20/9401"),S:parseLmsNumber("0/14164")}],
+    [201,{L:parseLmsNumber("-0/9661"),M:parseLmsNumber("20/9656"),S:parseLmsNumber("0/14176")}],
+    [202,{L:parseLmsNumber("-0/9582"),M:parseLmsNumber("20/9901"),S:parseLmsNumber("0/14187")}],
+    [203,{L:parseLmsNumber("-0/9503"),M:parseLmsNumber("21/0138"),S:parseLmsNumber("0/14198")}],
+    [204,{L:parseLmsNumber("-0/9423"),M:parseLmsNumber("21/0367"),S:parseLmsNumber("0/14208")}],
+    [205,{L:parseLmsNumber("-0/9344"),M:parseLmsNumber("21/0587"),S:parseLmsNumber("0/14219")}],
+    [206,{L:parseLmsNumber("-0/9264"),M:parseLmsNumber("21/0801"),S:parseLmsNumber("0/1423")}],
+    [207,{L:parseLmsNumber("-0/9184"),M:parseLmsNumber("21/1007"),S:parseLmsNumber("0/1424")}],
+    [208,{L:parseLmsNumber("-0/9104"),M:parseLmsNumber("21/1206"),S:parseLmsNumber("0/1425")}],
+    [209,{L:parseLmsNumber("-0/9024"),M:parseLmsNumber("21/1399"),S:parseLmsNumber("0/14261")}],
+    [210,{L:parseLmsNumber("-0/8944"),M:parseLmsNumber("21/1586"),S:parseLmsNumber("0/14271")}],
+    [211,{L:parseLmsNumber("-0/8863"),M:parseLmsNumber("21/1768"),S:parseLmsNumber("0/14281")}],
+    [212,{L:parseLmsNumber("-0/8783"),M:parseLmsNumber("21/1944"),S:parseLmsNumber("0/14291")}],
+    [213,{L:parseLmsNumber("-0/8703"),M:parseLmsNumber("21/2116"),S:parseLmsNumber("0/14301")}],
+    [214,{L:parseLmsNumber("-0/8623"),M:parseLmsNumber("21/2282"),S:parseLmsNumber("0/14311")}],
+    [215,{L:parseLmsNumber("-0/8542"),M:parseLmsNumber("21/2444"),S:parseLmsNumber("0/1432")}],
+    [216,{L:parseLmsNumber("-0/8462"),M:parseLmsNumber("21/2603"),S:parseLmsNumber("0/1433")}],
+    [217,{L:parseLmsNumber("-0/8382"),M:parseLmsNumber("21/2757"),S:parseLmsNumber("0/1434")}],
+    [218,{L:parseLmsNumber("-0/8301"),M:parseLmsNumber("21/2908"),S:parseLmsNumber("0/14349")}],
+    [219,{L:parseLmsNumber("-0/8221"),M:parseLmsNumber("21/3055"),S:parseLmsNumber("0/14359")}],
+    [220,{L:parseLmsNumber("-0/814"),M:parseLmsNumber("21/32"),S:parseLmsNumber("0/14368")}],
+    [221,{L:parseLmsNumber("-0/806"),M:parseLmsNumber("21/3341"),S:parseLmsNumber("0/14377")}],
+    [222,{L:parseLmsNumber("-0/798"),M:parseLmsNumber("21/348"),S:parseLmsNumber("0/14386")}],
+    [223,{L:parseLmsNumber("-0/7899"),M:parseLmsNumber("21/3617"),S:parseLmsNumber("0/14396")}],
+    [224,{L:parseLmsNumber("-0/7819"),M:parseLmsNumber("21/3752"),S:parseLmsNumber("0/14405")}],
+    [225,{L:parseLmsNumber("-0/7738"),M:parseLmsNumber("21/3884"),S:parseLmsNumber("0/14414")}],
+    [226,{L:parseLmsNumber("-0/7658"),M:parseLmsNumber("21/4014"),S:parseLmsNumber("0/14423")}],
+    [227,{L:parseLmsNumber("-0/7577"),M:parseLmsNumber("21/4143"),S:parseLmsNumber("0/14432")}],
+    [228,{L:parseLmsNumber("-0/7496"),M:parseLmsNumber("21/4269"),S:parseLmsNumber("0/14441")}]
   ]),
   boys: new Map([
-    [61, { L: parseLmsNumber("-0/7387"), M: parseLmsNumber("15/2641"), S: parseLmsNumber("0/0839") }],
-    [62, { L: parseLmsNumber("-0/7621"), M: parseLmsNumber("15/2616"), S: parseLmsNumber("0/08414") }],
-    [63, { L: parseLmsNumber("-0/7856"), M: parseLmsNumber("15/2604"), S: parseLmsNumber("0/08439") }],
-    [64, { L: parseLmsNumber("-0/8089"), M: parseLmsNumber("15/2605"), S: parseLmsNumber("0/08464") }],
-    [65, { L: parseLmsNumber("-0/8322"), M: parseLmsNumber("15/2619"), S: parseLmsNumber("0/0849") }],
-    [66, { L: parseLmsNumber("-0/8554"), M: parseLmsNumber("15/2645"), S: parseLmsNumber("0/08516") }],
-    [67, { L: parseLmsNumber("-0/8785"), M: parseLmsNumber("15/2684"), S: parseLmsNumber("0/08543") }],
-    [68, { L: parseLmsNumber("-0/9015"), M: parseLmsNumber("15/2737"), S: parseLmsNumber("0/0857") }],
-    [69, { L: parseLmsNumber("-0/9243"), M: parseLmsNumber("15/2801"), S: parseLmsNumber("0/08597") }],
-    [70, { L: parseLmsNumber("-0/9471"), M: parseLmsNumber("15/2877"), S: parseLmsNumber("0/08625") }],
-    [71, { L: parseLmsNumber("-0/9697"), M: parseLmsNumber("15/2965"), S: parseLmsNumber("0/08653") }],
-    [72, { L: parseLmsNumber("-0/9921"), M: parseLmsNumber("15/3062"), S: parseLmsNumber("0/08682") }],
-    [73, { L: parseLmsNumber("-1/0144"), M: parseLmsNumber("15/3169"), S: parseLmsNumber("0/08711") }],
-    [74, { L: parseLmsNumber("-1/0365"), M: parseLmsNumber("15/3285"), S: parseLmsNumber("0/08741") }],
-    [75, { L: parseLmsNumber("-1/0584"), M: parseLmsNumber("15/3408"), S: parseLmsNumber("0/08771") }],
-    [76, { L: parseLmsNumber("-1/0801"), M: parseLmsNumber("15/354"), S: parseLmsNumber("0/08802") }],
-    [77, { L: parseLmsNumber("-1/1017"), M: parseLmsNumber("15/3679"), S: parseLmsNumber("0/08833") }],
-    [78, { L: parseLmsNumber("-1/123"), M: parseLmsNumber("15/3825"), S: parseLmsNumber("0/08865") }],
-    [79, { L: parseLmsNumber("-1/1441"), M: parseLmsNumber("15/3978"), S: parseLmsNumber("0/08898") }],
-    [80, { L: parseLmsNumber("-1/1649"), M: parseLmsNumber("15/4137"), S: parseLmsNumber("0/08931") }],
-    [81, { L: parseLmsNumber("-1/1856"), M: parseLmsNumber("15/4302"), S: parseLmsNumber("0/08964") }],
-    [82, { L: parseLmsNumber("-1/206"), M: parseLmsNumber("15/4473"), S: parseLmsNumber("0/08998") }],
-    [83, { L: parseLmsNumber("-1/2261"), M: parseLmsNumber("15/465"), S: parseLmsNumber("0/09033") }],
-    [84, { L: parseLmsNumber("-1/246"), M: parseLmsNumber("15/4832"), S: parseLmsNumber("0/09068") }],
-    [85, { L: parseLmsNumber("-1/2656"), M: parseLmsNumber("15/5019"), S: parseLmsNumber("0/09103") }],
-    [86, { L: parseLmsNumber("-1/2849"), M: parseLmsNumber("15/521"), S: parseLmsNumber("0/09139") }],
-    [87, { L: parseLmsNumber("-1/304"), M: parseLmsNumber("15/5407"), S: parseLmsNumber("0/09176") }],
-    [88, { L: parseLmsNumber("-1/3228"), M: parseLmsNumber("15/5608"), S: parseLmsNumber("0/09213") }],
-    [89, { L: parseLmsNumber("-1/3414"), M: parseLmsNumber("15/5814"), S: parseLmsNumber("0/09251") }],
-    [90, { L: parseLmsNumber("-1/3596"), M: parseLmsNumber("15/6023"), S: parseLmsNumber("0/09289") }],
-    [91, { L: parseLmsNumber("-1/3776"), M: parseLmsNumber("15/6237"), S: parseLmsNumber("0/09327") }],
-    [92, { L: parseLmsNumber("-1/3953"), M: parseLmsNumber("15/6455"), S: parseLmsNumber("0/09366") }],
-    [93, { L: parseLmsNumber("-1/4126"), M: parseLmsNumber("15/6677"), S: parseLmsNumber("0/09406") }],
-    [94, { L: parseLmsNumber("-1/4297"), M: parseLmsNumber("15/6903"), S: parseLmsNumber("0/09445") }],
-    [95, { L: parseLmsNumber("-1/4464"), M: parseLmsNumber("15/7133"), S: parseLmsNumber("0/09486") }],
-    [96, { L: parseLmsNumber("-1/4629"), M: parseLmsNumber("15/7368"), S: parseLmsNumber("0/09526") }],
-    [97, { L: parseLmsNumber("-1/479"), M: parseLmsNumber("15/7606"), S: parseLmsNumber("0/09567") }],
-    [98, { L: parseLmsNumber("-1/4947"), M: parseLmsNumber("15/7848"), S: parseLmsNumber("0/09609") }],
-    [99, { L: parseLmsNumber("-1/5101"), M: parseLmsNumber("15/8094"), S: parseLmsNumber("0/09651") }],
-    [100, { L: parseLmsNumber("-1/5252"), M: parseLmsNumber("15/8344"), S: parseLmsNumber("0/09693") }],
-    [101, { L: parseLmsNumber("-1/5399"), M: parseLmsNumber("15/8597"), S: parseLmsNumber("0/09735") }],
-    [102, { L: parseLmsNumber("-1/5542"), M: parseLmsNumber("15/8855"), S: parseLmsNumber("0/09778") }],
-    [103, { L: parseLmsNumber("-1/5681"), M: parseLmsNumber("15/9116"), S: parseLmsNumber("0/09821") }],
-    [104, { L: parseLmsNumber("-1/5817"), M: parseLmsNumber("15/9381"), S: parseLmsNumber("0/09864") }],
-    [105, { L: parseLmsNumber("-1/5948"), M: parseLmsNumber("15/9651"), S: parseLmsNumber("0/09907") }],
-    [106, { L: parseLmsNumber("-1/6076"), M: parseLmsNumber("15/9925"), S: parseLmsNumber("0/09951") }],
-    [107, { L: parseLmsNumber("-1/6199"), M: parseLmsNumber("16/0205"), S: parseLmsNumber("0/09994") }],
-    [108, { L: parseLmsNumber("-1/6318"), M: parseLmsNumber("16/049"), S: parseLmsNumber("0/10038") }],
-    [109, { L: parseLmsNumber("-1/6433"), M: parseLmsNumber("16/0781"), S: parseLmsNumber("0/10082") }],
-    [110, { L: parseLmsNumber("-1/6544"), M: parseLmsNumber("16/1078"), S: parseLmsNumber("0/10126") }],
-    [111, { L: parseLmsNumber("-1/6651"), M: parseLmsNumber("16/1381"), S: parseLmsNumber("0/1017") }],
-    [112, { L: parseLmsNumber("-1/6753"), M: parseLmsNumber("16/1692"), S: parseLmsNumber("0/10214") }],
-    [113, { L: parseLmsNumber("-1/6851"), M: parseLmsNumber("16/2009"), S: parseLmsNumber("0/10259") }],
-    [114, { L: parseLmsNumber("-1/6944"), M: parseLmsNumber("16/2333"), S: parseLmsNumber("0/10303") }],
-    [115, { L: parseLmsNumber("-1/7032"), M: parseLmsNumber("16/2665"), S: parseLmsNumber("0/10347") }],
-    [116, { L: parseLmsNumber("-1/7116"), M: parseLmsNumber("16/3004"), S: parseLmsNumber("0/10391") }],
-    [117, { L: parseLmsNumber("-1/7196"), M: parseLmsNumber("16/3351"), S: parseLmsNumber("0/10435") }],
-    [118, { L: parseLmsNumber("-1/7271"), M: parseLmsNumber("16/3704"), S: parseLmsNumber("0/10478") }],
-    [119, { L: parseLmsNumber("-1/7341"), M: parseLmsNumber("16/4065"), S: parseLmsNumber("0/10522") }],
-    [120, { L: parseLmsNumber("-1/7407"), M: parseLmsNumber("16/4433"), S: parseLmsNumber("0/10566") }],
-    [121, { L: parseLmsNumber("-1/7468"), M: parseLmsNumber("16/4807"), S: parseLmsNumber("0/10609") }],
-    [122, { L: parseLmsNumber("-1/7525"), M: parseLmsNumber("16/5189"), S: parseLmsNumber("0/10652") }],
-    [123, { L: parseLmsNumber("-1/7578"), M: parseLmsNumber("16/5578"), S: parseLmsNumber("0/10695") }],
-    [124, { L: parseLmsNumber("-1/7626"), M: parseLmsNumber("16/5974"), S: parseLmsNumber("0/10738") }],
-    [125, { L: parseLmsNumber("-1/767"), M: parseLmsNumber("16/6376"), S: parseLmsNumber("0/1078") }],
-    [126, { L: parseLmsNumber("-1/771"), M: parseLmsNumber("16/6786"), S: parseLmsNumber("0/10823") }],
-    [127, { L: parseLmsNumber("-1/7745"), M: parseLmsNumber("16/7203"), S: parseLmsNumber("0/10865") }],
-    [128, { L: parseLmsNumber("-1/7777"), M: parseLmsNumber("16/7628"), S: parseLmsNumber("0/10906") }],
-    [129, { L: parseLmsNumber("-1/7804"), M: parseLmsNumber("16/8059"), S: parseLmsNumber("0/10948") }],
-    [130, { L: parseLmsNumber("-1/7828"), M: parseLmsNumber("16/8497"), S: parseLmsNumber("0/10989") }],
-    [131, { L: parseLmsNumber("-1/7847"), M: parseLmsNumber("16/8941"), S: parseLmsNumber("0/1103") }],
-    [132, { L: parseLmsNumber("-1/7862"), M: parseLmsNumber("16/9392"), S: parseLmsNumber("0/1107") }],
-    [133, { L: parseLmsNumber("-1/7873"), M: parseLmsNumber("16/985"), S: parseLmsNumber("0/1111") }],
-    [134, { L: parseLmsNumber("-1/7881"), M: parseLmsNumber("17/0314"), S: parseLmsNumber("0/1115") }],
-    [135, { L: parseLmsNumber("-1/7884"), M: parseLmsNumber("17/0784"), S: parseLmsNumber("0/11189") }],
-    [136, { L: parseLmsNumber("-1/7884"), M: parseLmsNumber("17/1262"), S: parseLmsNumber("0/11228") }],
-    [137, { L: parseLmsNumber("-1/788"), M: parseLmsNumber("17/1746"), S: parseLmsNumber("0/11266") }],
-    [138, { L: parseLmsNumber("-1/7873"), M: parseLmsNumber("17/2236"), S: parseLmsNumber("0/11304") }],
-    [139, { L: parseLmsNumber("-1/7861"), M: parseLmsNumber("17/2734"), S: parseLmsNumber("0/11342") }],
-    [140, { L: parseLmsNumber("-1/7846"), M: parseLmsNumber("17/324"), S: parseLmsNumber("0/11379") }],
-    [141, { L: parseLmsNumber("-1/7828"), M: parseLmsNumber("17/3752"), S: parseLmsNumber("0/11415") }],
-    [142, { L: parseLmsNumber("-1/7806"), M: parseLmsNumber("17/4272"), S: parseLmsNumber("0/11451") }],
-    [143, { L: parseLmsNumber("-1/778"), M: parseLmsNumber("17/4799"), S: parseLmsNumber("0/11487") }],
-    [144, { L: parseLmsNumber("-1/7751"), M: parseLmsNumber("17/5334"), S: parseLmsNumber("0/11522") }],
-    [145, { L: parseLmsNumber("-1/7719"), M: parseLmsNumber("17/5877"), S: parseLmsNumber("0/11556") }],
-    [146, { L: parseLmsNumber("-1/7684"), M: parseLmsNumber("17/6427"), S: parseLmsNumber("0/1159") }],
-    [147, { L: parseLmsNumber("-1/7645"), M: parseLmsNumber("17/6985"), S: parseLmsNumber("0/11623") }],
-    [148, { L: parseLmsNumber("-1/7604"), M: parseLmsNumber("17/7551"), S: parseLmsNumber("0/11656") }],
-    [149, { L: parseLmsNumber("-1/7559"), M: parseLmsNumber("17/8124"), S: parseLmsNumber("0/11688") }],
-    [150, { L: parseLmsNumber("-1/7511"), M: parseLmsNumber("17/8704"), S: parseLmsNumber("0/1172") }],
-    [151, { L: parseLmsNumber("-1/7461"), M: parseLmsNumber("17/9292"), S: parseLmsNumber("0/11751") }],
-    [152, { L: parseLmsNumber("-1/7408"), M: parseLmsNumber("17/9887"), S: parseLmsNumber("0/11781") }],
-    [153, { L: parseLmsNumber("-1/7352"), M: parseLmsNumber("18/0488"), S: parseLmsNumber("0/11811") }],
-    [154, { L: parseLmsNumber("-1/7293"), M: parseLmsNumber("18/1096"), S: parseLmsNumber("0/11841") }],
-    [155, { L: parseLmsNumber("-1/7232"), M: parseLmsNumber("18/171"), S: parseLmsNumber("0/11869") }],
-    [156, { L: parseLmsNumber("-1/7168"), M: parseLmsNumber("18/233"), S: parseLmsNumber("0/11898") }],
-    [157, { L: parseLmsNumber("-1/7102"), M: parseLmsNumber("18/2955"), S: parseLmsNumber("0/11925") }],
-    [158, { L: parseLmsNumber("-1/7033"), M: parseLmsNumber("18/3586"), S: parseLmsNumber("0/11952") }],
-    [159, { L: parseLmsNumber("-1/6962"), M: parseLmsNumber("18/4221"), S: parseLmsNumber("0/11979") }],
-    [160, { L: parseLmsNumber("-1/6888"), M: parseLmsNumber("18/486"), S: parseLmsNumber("0/12005") }],
-    [161, { L: parseLmsNumber("-1/6811"), M: parseLmsNumber("18/5502"), S: parseLmsNumber("0/1203") }],
-    [162, { L: parseLmsNumber("-1/6732"), M: parseLmsNumber("18/6148"), S: parseLmsNumber("0/12055") }],
-    [163, { L: parseLmsNumber("-1/6651"), M: parseLmsNumber("18/6795"), S: parseLmsNumber("0/12079") }],
-    [164, { L: parseLmsNumber("-1/6568"), M: parseLmsNumber("18/7445"), S: parseLmsNumber("0/12102") }],
-    [165, { L: parseLmsNumber("-1/6482"), M: parseLmsNumber("18/8095"), S: parseLmsNumber("0/12125") }],
-    [166, { L: parseLmsNumber("-1/6394"), M: parseLmsNumber("18/8746"), S: parseLmsNumber("0/12148") }],
-    [167, { L: parseLmsNumber("-1/6304"), M: parseLmsNumber("18/9398"), S: parseLmsNumber("0/1217") }],
-    [168, { L: parseLmsNumber("-1/6211"), M: parseLmsNumber("19/005"), S: parseLmsNumber("0/12191") }],
-    [169, { L: parseLmsNumber("-1/6116"), M: parseLmsNumber("19/0701"), S: parseLmsNumber("0/12212") }],
-    [170, { L: parseLmsNumber("-1/602"), M: parseLmsNumber("19/1351"), S: parseLmsNumber("0/12233") }],
-    [171, { L: parseLmsNumber("-1/5921"), M: parseLmsNumber("19/2"), S: parseLmsNumber("0/12253") }],
-    [172, { L: parseLmsNumber("-1/5821"), M: parseLmsNumber("19/2648"), S: parseLmsNumber("0/12272") }],
-    [173, { L: parseLmsNumber("-1/5719"), M: parseLmsNumber("19/3294"), S: parseLmsNumber("0/12291") }],
-    [174, { L: parseLmsNumber("-1/5615"), M: parseLmsNumber("19/3937"), S: parseLmsNumber("0/1231") }],
-    [175, { L: parseLmsNumber("-1/551"), M: parseLmsNumber("19/4578"), S: parseLmsNumber("0/12328") }],
-    [176, { L: parseLmsNumber("-1/5403"), M: parseLmsNumber("19/5217"), S: parseLmsNumber("0/12346") }],
-    [177, { L: parseLmsNumber("-1/5294"), M: parseLmsNumber("19/5853"), S: parseLmsNumber("0/12363") }],
-    [178, { L: parseLmsNumber("-1/5185"), M: parseLmsNumber("19/6486"), S: parseLmsNumber("0/1238") }],
-    [179, { L: parseLmsNumber("-1/5074"), M: parseLmsNumber("19/7117"), S: parseLmsNumber("0/12396") }],
-    [180, { L: parseLmsNumber("-1/4961"), M: parseLmsNumber("19/7744"), S: parseLmsNumber("0/12412") }],
-    [181, { L: parseLmsNumber("-1/4848"), M: parseLmsNumber("19/8367"), S: parseLmsNumber("0/12428") }],
-    [182, { L: parseLmsNumber("-1/4733"), M: parseLmsNumber("19/8987"), S: parseLmsNumber("0/12443") }],
-    [183, { L: parseLmsNumber("-1/4617"), M: parseLmsNumber("19/9603"), S: parseLmsNumber("0/12458") }],
-    [184, { L: parseLmsNumber("-1/45"), M: parseLmsNumber("20/0215"), S: parseLmsNumber("0/12473") }],
-    [185, { L: parseLmsNumber("-1/4382"), M: parseLmsNumber("20/0823"), S: parseLmsNumber("0/12487") }],
-    [186, { L: parseLmsNumber("-1/4263"), M: parseLmsNumber("20/1427"), S: parseLmsNumber("0/12501") }],
-    [187, { L: parseLmsNumber("-1/4143"), M: parseLmsNumber("20/2026"), S: parseLmsNumber("0/12514") }],
-    [188, { L: parseLmsNumber("-1/4022"), M: parseLmsNumber("20/2621"), S: parseLmsNumber("0/12528") }],
-    [189, { L: parseLmsNumber("-1/39"), M: parseLmsNumber("20/3211"), S: parseLmsNumber("0/12541") }],
-    [190, { L: parseLmsNumber("-1/3777"), M: parseLmsNumber("20/3796"), S: parseLmsNumber("0/12554") }],
-    [191, { L: parseLmsNumber("-1/3653"), M: parseLmsNumber("20/4376"), S: parseLmsNumber("0/12567") }],
-    [192, { L: parseLmsNumber("-1/3529"), M: parseLmsNumber("20/4951"), S: parseLmsNumber("0/12579") }],
-    [193, { L: parseLmsNumber("-1/3403"), M: parseLmsNumber("20/5521"), S: parseLmsNumber("0/12591") }],
-    [194, { L: parseLmsNumber("-1/3277"), M: parseLmsNumber("20/6085"), S: parseLmsNumber("0/12603") }],
-    [195, { L: parseLmsNumber("-1/3149"), M: parseLmsNumber("20/6644"), S: parseLmsNumber("0/12615") }],
-    [196, { L: parseLmsNumber("-1/3021"), M: parseLmsNumber("20/7197"), S: parseLmsNumber("0/12627") }],
-    [197, { L: parseLmsNumber("-1/2892"), M: parseLmsNumber("20/7745"), S: parseLmsNumber("0/12638") }],
-    [198, { L: parseLmsNumber("-1/2762"), M: parseLmsNumber("20/8287"), S: parseLmsNumber("0/1265") }],
-    [199, { L: parseLmsNumber("-1/2631"), M: parseLmsNumber("20/8824"), S: parseLmsNumber("0/12661") }],
-    [200, { L: parseLmsNumber("-1/2499"), M: parseLmsNumber("20/9355"), S: parseLmsNumber("0/12672") }],
-    [201, { L: parseLmsNumber("-1/2366"), M: parseLmsNumber("20/9881"), S: parseLmsNumber("0/12683") }],
-    [202, { L: parseLmsNumber("-1/2233"), M: parseLmsNumber("21/04"), S: parseLmsNumber("0/12694") }],
-    [203, { L: parseLmsNumber("-1/2098"), M: parseLmsNumber("21/0914"), S: parseLmsNumber("0/12704") }],
-    [204, { L: parseLmsNumber("-1/1962"), M: parseLmsNumber("21/1423"), S: parseLmsNumber("0/12715") }],
-    [205, { L: parseLmsNumber("-1/1826"), M: parseLmsNumber("21/1925"), S: parseLmsNumber("0/12726") }],
-    [206, { L: parseLmsNumber("-1/1688"), M: parseLmsNumber("21/2423"), S: parseLmsNumber("0/12736") }],
-    [207, { L: parseLmsNumber("-1/155"), M: parseLmsNumber("21/2914"), S: parseLmsNumber("0/12746") }],
-    [208, { L: parseLmsNumber("-1/141"), M: parseLmsNumber("21/34"), S: parseLmsNumber("0/12756") }],
-    [209, { L: parseLmsNumber("-1/127"), M: parseLmsNumber("21/388"), S: parseLmsNumber("0/12767") }],
-    [210, { L: parseLmsNumber("-1/1129"), M: parseLmsNumber("21/4354"), S: parseLmsNumber("0/12777") }],
-    [211, { L: parseLmsNumber("-1/0986"), M: parseLmsNumber("21/4822"), S: parseLmsNumber("0/12787") }],
-    [212, { L: parseLmsNumber("-1/0843"), M: parseLmsNumber("21/5285"), S: parseLmsNumber("0/12797") }],
-    [213, { L: parseLmsNumber("-1/0699"), M: parseLmsNumber("21/5742"), S: parseLmsNumber("0/12807") }],
-    [214, { L: parseLmsNumber("-1/0553"), M: parseLmsNumber("21/6193"), S: parseLmsNumber("0/12816") }],
-    [215, { L: parseLmsNumber("-1/0407"), M: parseLmsNumber("21/6638"), S: parseLmsNumber("0/12826") }],
-    [216, { L: parseLmsNumber("-1/026"), M: parseLmsNumber("21/7077"), S: parseLmsNumber("0/12836") }],
-    [217, { L: parseLmsNumber("-1/0112"), M: parseLmsNumber("21/751"), S: parseLmsNumber("0/12845") }],
-    [218, { L: parseLmsNumber("-0/9962"), M: parseLmsNumber("21/7937"), S: parseLmsNumber("0/12855") }],
-    [219, { L: parseLmsNumber("-0/9812"), M: parseLmsNumber("21/8358"), S: parseLmsNumber("0/12864") }],
-    [220, { L: parseLmsNumber("-0/9661"), M: parseLmsNumber("21/8773"), S: parseLmsNumber("0/12874") }],
-    [221, { L: parseLmsNumber("-0/9509"), M: parseLmsNumber("21/9182"), S: parseLmsNumber("0/12883") }],
-    [222, { L: parseLmsNumber("-0/9356"), M: parseLmsNumber("21/9585"), S: parseLmsNumber("0/12893") }],
-    [223, { L: parseLmsNumber("-0/9202"), M: parseLmsNumber("21/9982"), S: parseLmsNumber("0/12902") }],
-    [224, { L: parseLmsNumber("-0/9048"), M: parseLmsNumber("22/0374"), S: parseLmsNumber("0/12911") }],
-    [225, { L: parseLmsNumber("-0/8892"), M: parseLmsNumber("22/076"), S: parseLmsNumber("0/1292") }],
-    [226, { L: parseLmsNumber("-0/8735"), M: parseLmsNumber("22/114"), S: parseLmsNumber("0/1293") }],
-    [227, { L: parseLmsNumber("-0/8578"), M: parseLmsNumber("22/1514"), S: parseLmsNumber("0/12939") }],
-    [228, { L: parseLmsNumber("-0/8419"), M: parseLmsNumber("22/1883"), S: parseLmsNumber("0/12948") }]
+    [61,{L:parseLmsNumber("-0/7387"),M:parseLmsNumber("15/2641"),S:parseLmsNumber("0/0839")}],
+    [62,{L:parseLmsNumber("-0/7621"),M:parseLmsNumber("15/2616"),S:parseLmsNumber("0/08414")}],
+    [63,{L:parseLmsNumber("-0/7856"),M:parseLmsNumber("15/2604"),S:parseLmsNumber("0/08439")}],
+    [64,{L:parseLmsNumber("-0/8089"),M:parseLmsNumber("15/2605"),S:parseLmsNumber("0/08464")}],
+    [65,{L:parseLmsNumber("-0/8322"),M:parseLmsNumber("15/2619"),S:parseLmsNumber("0/0849")}],
+    [66,{L:parseLmsNumber("-0/8554"),M:parseLmsNumber("15/2645"),S:parseLmsNumber("0/08516")}],
+    [67,{L:parseLmsNumber("-0/8785"),M:parseLmsNumber("15/2684"),S:parseLmsNumber("0/08543")}],
+    [68,{L:parseLmsNumber("-0/9015"),M:parseLmsNumber("15/2737"),S:parseLmsNumber("0/0857")}],
+    [69,{L:parseLmsNumber("-0/9243"),M:parseLmsNumber("15/2801"),S:parseLmsNumber("0/08597")}],
+    [70,{L:parseLmsNumber("-0/9471"),M:parseLmsNumber("15/2877"),S:parseLmsNumber("0/08625")}],
+    [71,{L:parseLmsNumber("-0/9697"),M:parseLmsNumber("15/2965"),S:parseLmsNumber("0/08653")}],
+    [72,{L:parseLmsNumber("-0/9921"),M:parseLmsNumber("15/3062"),S:parseLmsNumber("0/08682")}],
+    [73,{L:parseLmsNumber("-1/0144"),M:parseLmsNumber("15/3169"),S:parseLmsNumber("0/08711")}],
+    [74,{L:parseLmsNumber("-1/0365"),M:parseLmsNumber("15/3285"),S:parseLmsNumber("0/08741")}],
+    [75,{L:parseLmsNumber("-1/0584"),M:parseLmsNumber("15/3408"),S:parseLmsNumber("0/08771")}],
+    [76,{L:parseLmsNumber("-1/0801"),M:parseLmsNumber("15/354"),S:parseLmsNumber("0/08802")}],
+    [77,{L:parseLmsNumber("-1/1017"),M:parseLmsNumber("15/3679"),S:parseLmsNumber("0/08833")}],
+    [78,{L:parseLmsNumber("-1/123"),M:parseLmsNumber("15/3825"),S:parseLmsNumber("0/08865")}],
+    [79,{L:parseLmsNumber("-1/1441"),M:parseLmsNumber("15/3978"),S:parseLmsNumber("0/08898")}],
+    [80,{L:parseLmsNumber("-1/1649"),M:parseLmsNumber("15/4137"),S:parseLmsNumber("0/08931")}],
+    [81,{L:parseLmsNumber("-1/1856"),M:parseLmsNumber("15/4302"),S:parseLmsNumber("0/08964")}],
+    [82,{L:parseLmsNumber("-1/206"),M:parseLmsNumber("15/4473"),S:parseLmsNumber("0/08998")}],
+    [83,{L:parseLmsNumber("-1/2261"),M:parseLmsNumber("15/465"),S:parseLmsNumber("0/09033")}],
+    [84,{L:parseLmsNumber("-1/246"),M:parseLmsNumber("15/4832"),S:parseLmsNumber("0/09068")}],
+    [85,{L:parseLmsNumber("-1/2656"),M:parseLmsNumber("15/5019"),S:parseLmsNumber("0/09103")}],
+    [86,{L:parseLmsNumber("-1/2849"),M:parseLmsNumber("15/521"),S:parseLmsNumber("0/09139")}],
+    [87,{L:parseLmsNumber("-1/304"),M:parseLmsNumber("15/5407"),S:parseLmsNumber("0/09176")}],
+    [88,{L:parseLmsNumber("-1/3228"),M:parseLmsNumber("15/5608"),S:parseLmsNumber("0/09213")}],
+    [89,{L:parseLmsNumber("-1/3414"),M:parseLmsNumber("15/5814"),S:parseLmsNumber("0/09251")}],
+    [90,{L:parseLmsNumber("-1/3596"),M:parseLmsNumber("15/6023"),S:parseLmsNumber("0/09289")}],
+    [91,{L:parseLmsNumber("-1/3776"),M:parseLmsNumber("15/6237"),S:parseLmsNumber("0/09327")}],
+    [92,{L:parseLmsNumber("-1/3953"),M:parseLmsNumber("15/6455"),S:parseLmsNumber("0/09366")}],
+    [93,{L:parseLmsNumber("-1/4126"),M:parseLmsNumber("15/6677"),S:parseLmsNumber("0/09406")}],
+    [94,{L:parseLmsNumber("-1/4297"),M:parseLmsNumber("15/6903"),S:parseLmsNumber("0/09445")}],
+    [95,{L:parseLmsNumber("-1/4464"),M:parseLmsNumber("15/7133"),S:parseLmsNumber("0/09486")}],
+    [96,{L:parseLmsNumber("-1/4629"),M:parseLmsNumber("15/7368"),S:parseLmsNumber("0/09526")}],
+    [97,{L:parseLmsNumber("-1/479"),M:parseLmsNumber("15/7606"),S:parseLmsNumber("0/09567")}],
+    [98,{L:parseLmsNumber("-1/4947"),M:parseLmsNumber("15/7848"),S:parseLmsNumber("0/09609")}],
+    [99,{L:parseLmsNumber("-1/5101"),M:parseLmsNumber("15/8094"),S:parseLmsNumber("0/09651")}],
+    [100,{L:parseLmsNumber("-1/5252"),M:parseLmsNumber("15/8344"),S:parseLmsNumber("0/09693")}],
+    [101,{L:parseLmsNumber("-1/5399"),M:parseLmsNumber("15/8597"),S:parseLmsNumber("0/09735")}],
+    [102,{L:parseLmsNumber("-1/5542"),M:parseLmsNumber("15/8855"),S:parseLmsNumber("0/09778")}],
+    [103,{L:parseLmsNumber("-1/5681"),M:parseLmsNumber("15/9116"),S:parseLmsNumber("0/09821")}],
+    [104,{L:parseLmsNumber("-1/5817"),M:parseLmsNumber("15/9381"),S:parseLmsNumber("0/09864")}],
+    [105,{L:parseLmsNumber("-1/5948"),M:parseLmsNumber("15/9651"),S:parseLmsNumber("0/09907")}],
+    [106,{L:parseLmsNumber("-1/6076"),M:parseLmsNumber("15/9925"),S:parseLmsNumber("0/09951")}],
+    [107,{L:parseLmsNumber("-1/6199"),M:parseLmsNumber("16/0205"),S:parseLmsNumber("0/09994")}],
+    [108,{L:parseLmsNumber("-1/6318"),M:parseLmsNumber("16/049"),S:parseLmsNumber("0/10038")}],
+    [109,{L:parseLmsNumber("-1/6433"),M:parseLmsNumber("16/0781"),S:parseLmsNumber("0/10082")}],
+    [110,{L:parseLmsNumber("-1/6544"),M:parseLmsNumber("16/1078"),S:parseLmsNumber("0/10126")}],
+    [111,{L:parseLmsNumber("-1/6651"),M:parseLmsNumber("16/1381"),S:parseLmsNumber("0/1017")}],
+    [112,{L:parseLmsNumber("-1/6753"),M:parseLmsNumber("16/1692"),S:parseLmsNumber("0/10214")}],
+    [113,{L:parseLmsNumber("-1/6851"),M:parseLmsNumber("16/2009"),S:parseLmsNumber("0/10259")}],
+    [114,{L:parseLmsNumber("-1/6944"),M:parseLmsNumber("16/2333"),S:parseLmsNumber("0/10303")}],
+    [115,{L:parseLmsNumber("-1/7032"),M:parseLmsNumber("16/2665"),S:parseLmsNumber("0/10347")}],
+    [116,{L:parseLmsNumber("-1/7116"),M:parseLmsNumber("16/3004"),S:parseLmsNumber("0/10391")}],
+    [117,{L:parseLmsNumber("-1/7196"),M:parseLmsNumber("16/3351"),S:parseLmsNumber("0/10435")}],
+    [118,{L:parseLmsNumber("-1/7271"),M:parseLmsNumber("16/3704"),S:parseLmsNumber("0/10478")}],
+    [119,{L:parseLmsNumber("-1/7341"),M:parseLmsNumber("16/4065"),S:parseLmsNumber("0/10522")}],
+    [120,{L:parseLmsNumber("-1/7407"),M:parseLmsNumber("16/4433"),S:parseLmsNumber("0/10566")}],
+    [121,{L:parseLmsNumber("-1/7468"),M:parseLmsNumber("16/4807"),S:parseLmsNumber("0/10609")}],
+    [122,{L:parseLmsNumber("-1/7525"),M:parseLmsNumber("16/5189"),S:parseLmsNumber("0/10652")}],
+    [123,{L:parseLmsNumber("-1/7578"),M:parseLmsNumber("16/5578"),S:parseLmsNumber("0/10695")}],
+    [124,{L:parseLmsNumber("-1/7626"),M:parseLmsNumber("16/5974"),S:parseLmsNumber("0/10738")}],
+    [125,{L:parseLmsNumber("-1/767"),M:parseLmsNumber("16/6376"),S:parseLmsNumber("0/1078")}],
+    [126,{L:parseLmsNumber("-1/771"),M:parseLmsNumber("16/6786"),S:parseLmsNumber("0/10823")}],
+    [127,{L:parseLmsNumber("-1/7745"),M:parseLmsNumber("16/7203"),S:parseLmsNumber("0/10865")}],
+    [128,{L:parseLmsNumber("-1/7777"),M:parseLmsNumber("16/7628"),S:parseLmsNumber("0/10906")}],
+    [129,{L:parseLmsNumber("-1/7804"),M:parseLmsNumber("16/8059"),S:parseLmsNumber("0/10948")}],
+    [130,{L:parseLmsNumber("-1/7828"),M:parseLmsNumber("16/8497"),S:parseLmsNumber("0/10989")}],
+    [131,{L:parseLmsNumber("-1/7847"),M:parseLmsNumber("16/8941"),S:parseLmsNumber("0/1103")}],
+    [132,{L:parseLmsNumber("-1/7862"),M:parseLmsNumber("16/9392"),S:parseLmsNumber("0/1107")}],
+    [133,{L:parseLmsNumber("-1/7873"),M:parseLmsNumber("16/985"),S:parseLmsNumber("0/1111")}],
+    [134,{L:parseLmsNumber("-1/7881"),M:parseLmsNumber("17/0314"),S:parseLmsNumber("0/1115")}],
+    [135,{L:parseLmsNumber("-1/7884"),M:parseLmsNumber("17/0784"),S:parseLmsNumber("0/11189")}],
+    [136,{L:parseLmsNumber("-1/7884"),M:parseLmsNumber("17/1262"),S:parseLmsNumber("0/11228")}],
+    [137,{L:parseLmsNumber("-1/788"),M:parseLmsNumber("17/1746"),S:parseLmsNumber("0/11266")}],
+    [138,{L:parseLmsNumber("-1/7873"),M:parseLmsNumber("17/2236"),S:parseLmsNumber("0/11304")}],
+    [139,{L:parseLmsNumber("-1/7861"),M:parseLmsNumber("17/2734"),S:parseLmsNumber("0/11342")}],
+    [140,{L:parseLmsNumber("-1/7846"),M:parseLmsNumber("17/324"),S:parseLmsNumber("0/11379")}],
+    [141,{L:parseLmsNumber("-1/7828"),M:parseLmsNumber("17/3752"),S:parseLmsNumber("0/11415")}],
+    [142,{L:parseLmsNumber("-1/7806"),M:parseLmsNumber("17/4272"),S:parseLmsNumber("0/11451")}],
+    [143,{L:parseLmsNumber("-1/778"),M:parseLmsNumber("17/4799"),S:parseLmsNumber("0/11487")}],
+    [144,{L:parseLmsNumber("-1/7751"),M:parseLmsNumber("17/5334"),S:parseLmsNumber("0/11522")}],
+    [145,{L:parseLmsNumber("-1/7719"),M:parseLmsNumber("17/5877"),S:parseLmsNumber("0/11556")}],
+    [146,{L:parseLmsNumber("-1/7684"),M:parseLmsNumber("17/6427"),S:parseLmsNumber("0/1159")}],
+    [147,{L:parseLmsNumber("-1/7645"),M:parseLmsNumber("17/6985"),S:parseLmsNumber("0/11623")}],
+    [148,{L:parseLmsNumber("-1/7604"),M:parseLmsNumber("17/7551"),S:parseLmsNumber("0/11656")}],
+    [149,{L:parseLmsNumber("-1/7559"),M:parseLmsNumber("17/8124"),S:parseLmsNumber("0/11688")}],
+    [150,{L:parseLmsNumber("-1/7511"),M:parseLmsNumber("17/8704"),S:parseLmsNumber("0/1172")}],
+    [151,{L:parseLmsNumber("-1/7461"),M:parseLmsNumber("17/9292"),S:parseLmsNumber("0/11751")}],
+    [152,{L:parseLmsNumber("-1/7408"),M:parseLmsNumber("17/9887"),S:parseLmsNumber("0/11781")}],
+    [153,{L:parseLmsNumber("-1/7352"),M:parseLmsNumber("18/0488"),S:parseLmsNumber("0/11811")}],
+    [154,{L:parseLmsNumber("-1/7293"),M:parseLmsNumber("18/1096"),S:parseLmsNumber("0/11841")}],
+    [155,{L:parseLmsNumber("-1/7232"),M:parseLmsNumber("18/171"),S:parseLmsNumber("0/11869")}],
+    [156,{L:parseLmsNumber("-1/7168"),M:parseLmsNumber("18/233"),S:parseLmsNumber("0/11898")}],
+    [157,{L:parseLmsNumber("-1/7102"),M:parseLmsNumber("18/2955"),S:parseLmsNumber("0/11925")}],
+    [158,{L:parseLmsNumber("-1/7033"),M:parseLmsNumber("18/3586"),S:parseLmsNumber("0/11952")}],
+    [159,{L:parseLmsNumber("-1/6962"),M:parseLmsNumber("18/4221"),S:parseLmsNumber("0/11979")}],
+    [160,{L:parseLmsNumber("-1/6888"),M:parseLmsNumber("18/486"),S:parseLmsNumber("0/12005")}],
+    [161,{L:parseLmsNumber("-1/6811"),M:parseLmsNumber("18/5502"),S:parseLmsNumber("0/1203")}],
+    [162,{L:parseLmsNumber("-1/6732"),M:parseLmsNumber("18/6148"),S:parseLmsNumber("0/12055")}],
+    [163,{L:parseLmsNumber("-1/6651"),M:parseLmsNumber("18/6795"),S:parseLmsNumber("0/12079")}],
+    [164,{L:parseLmsNumber("-1/6568"),M:parseLmsNumber("18/7445"),S:parseLmsNumber("0/12102")}],
+    [165,{L:parseLmsNumber("-1/6482"),M:parseLmsNumber("18/8095"),S:parseLmsNumber("0/12125")}],
+    [166,{L:parseLmsNumber("-1/6394"),M:parseLmsNumber("18/8746"),S:parseLmsNumber("0/12148")}],
+    [167,{L:parseLmsNumber("-1/6304"),M:parseLmsNumber("18/9398"),S:parseLmsNumber("0/1217")}],
+    [168,{L:parseLmsNumber("-1/6211"),M:parseLmsNumber("19/005"),S:parseLmsNumber("0/12191")}],
+    [169,{L:parseLmsNumber("-1/6116"),M:parseLmsNumber("19/0701"),S:parseLmsNumber("0/12212")}],
+    [170,{L:parseLmsNumber("-1/602"),M:parseLmsNumber("19/1351"),S:parseLmsNumber("0/12233")}],
+    [171,{L:parseLmsNumber("-1/5921"),M:parseLmsNumber("19/2"),S:parseLmsNumber("0/12253")}],
+    [172,{L:parseLmsNumber("-1/5821"),M:parseLmsNumber("19/2648"),S:parseLmsNumber("0/12272")}],
+    [173,{L:parseLmsNumber("-1/5719"),M:parseLmsNumber("19/3294"),S:parseLmsNumber("0/12291")}],
+    [174,{L:parseLmsNumber("-1/5615"),M:parseLmsNumber("19/3937"),S:parseLmsNumber("0/1231")}],
+    [175,{L:parseLmsNumber("-1/551"),M:parseLmsNumber("19/4578"),S:parseLmsNumber("0/12328")}],
+    [176,{L:parseLmsNumber("-1/5403"),M:parseLmsNumber("19/5217"),S:parseLmsNumber("0/12346")}],
+    [177,{L:parseLmsNumber("-1/5294"),M:parseLmsNumber("19/5853"),S:parseLmsNumber("0/12363")}],
+    [178,{L:parseLmsNumber("-1/5185"),M:parseLmsNumber("19/6486"),S:parseLmsNumber("0/1238")}],
+    [179,{L:parseLmsNumber("-1/5074"),M:parseLmsNumber("19/7117"),S:parseLmsNumber("0/12396")}],
+    [180,{L:parseLmsNumber("-1/4961"),M:parseLmsNumber("19/7744"),S:parseLmsNumber("0/12412")}],
+    [181,{L:parseLmsNumber("-1/4848"),M:parseLmsNumber("19/8367"),S:parseLmsNumber("0/12428")}],
+    [182,{L:parseLmsNumber("-1/4733"),M:parseLmsNumber("19/8987"),S:parseLmsNumber("0/12443")}],
+    [183,{L:parseLmsNumber("-1/4617"),M:parseLmsNumber("19/9603"),S:parseLmsNumber("0/12458")}],
+    [184,{L:parseLmsNumber("-1/45"),M:parseLmsNumber("20/0215"),S:parseLmsNumber("0/12473")}],
+    [185,{L:parseLmsNumber("-1/4382"),M:parseLmsNumber("20/0823"),S:parseLmsNumber("0/12487")}],
+    [186,{L:parseLmsNumber("-1/4263"),M:parseLmsNumber("20/1427"),S:parseLmsNumber("0/12501")}],
+    [187,{L:parseLmsNumber("-1/4143"),M:parseLmsNumber("20/2026"),S:parseLmsNumber("0/12514")}],
+    [188,{L:parseLmsNumber("-1/4022"),M:parseLmsNumber("20/2621"),S:parseLmsNumber("0/12528")}],
+    [189,{L:parseLmsNumber("-1/39"),M:parseLmsNumber("20/3211"),S:parseLmsNumber("0/12541")}],
+    [190,{L:parseLmsNumber("-1/3777"),M:parseLmsNumber("20/3796"),S:parseLmsNumber("0/12554")}],
+    [191,{L:parseLmsNumber("-1/3653"),M:parseLmsNumber("20/4376"),S:parseLmsNumber("0/12567")}],
+    [192,{L:parseLmsNumber("-1/3529"),M:parseLmsNumber("20/4951"),S:parseLmsNumber("0/12579")}],
+    [193,{L:parseLmsNumber("-1/3403"),M:parseLmsNumber("20/5521"),S:parseLmsNumber("0/12591")}],
+    [194,{L:parseLmsNumber("-1/3277"),M:parseLmsNumber("20/6085"),S:parseLmsNumber("0/12603")}],
+    [195,{L:parseLmsNumber("-1/3149"),M:parseLmsNumber("20/6644"),S:parseLmsNumber("0/12615")}],
+    [196,{L:parseLmsNumber("-1/3021"),M:parseLmsNumber("20/7197"),S:parseLmsNumber("0/12627")}],
+    [197,{L:parseLmsNumber("-1/2892"),M:parseLmsNumber("20/7745"),S:parseLmsNumber("0/12638")}],
+    [198,{L:parseLmsNumber("-1/2762"),M:parseLmsNumber("20/8287"),S:parseLmsNumber("0/1265")}],
+    [199,{L:parseLmsNumber("-1/2631"),M:parseLmsNumber("20/8824"),S:parseLmsNumber("0/12661")}],
+    [200,{L:parseLmsNumber("-1/2499"),M:parseLmsNumber("20/9355"),S:parseLmsNumber("0/12672")}],
+    [201,{L:parseLmsNumber("-1/2366"),M:parseLmsNumber("20/9881"),S:parseLmsNumber("0/12683")}],
+    [202,{L:parseLmsNumber("-1/2233"),M:parseLmsNumber("21/04"),S:parseLmsNumber("0/12694")}],
+    [203,{L:parseLmsNumber("-1/2098"),M:parseLmsNumber("21/0914"),S:parseLmsNumber("0/12704")}],
+    [204,{L:parseLmsNumber("-1/1962"),M:parseLmsNumber("21/1423"),S:parseLmsNumber("0/12715")}],
+    [205,{L:parseLmsNumber("-1/1826"),M:parseLmsNumber("21/1925"),S:parseLmsNumber("0/12726")}],
+    [206,{L:parseLmsNumber("-1/1688"),M:parseLmsNumber("21/2423"),S:parseLmsNumber("0/12736")}],
+    [207,{L:parseLmsNumber("-1/155"),M:parseLmsNumber("21/2914"),S:parseLmsNumber("0/12746")}],
+    [208,{L:parseLmsNumber("-1/141"),M:parseLmsNumber("21/34"),S:parseLmsNumber("0/12756")}],
+    [209,{L:parseLmsNumber("-1/127"),M:parseLmsNumber("21/388"),S:parseLmsNumber("0/12767")}],
+    [210,{L:parseLmsNumber("-1/1129"),M:parseLmsNumber("21/4354"),S:parseLmsNumber("0/12777")}],
+    [211,{L:parseLmsNumber("-1/0986"),M:parseLmsNumber("21/4822"),S:parseLmsNumber("0/12787")}],
+    [212,{L:parseLmsNumber("-1/0843"),M:parseLmsNumber("21/5285"),S:parseLmsNumber("0/12797")}],
+    [213,{L:parseLmsNumber("-1/0699"),M:parseLmsNumber("21/5742"),S:parseLmsNumber("0/12807")}],
+    [214,{L:parseLmsNumber("-1/0553"),M:parseLmsNumber("21/6193"),S:parseLmsNumber("0/12816")}],
+    [215,{L:parseLmsNumber("-1/0407"),M:parseLmsNumber("21/6638"),S:parseLmsNumber("0/12826")}],
+    [216,{L:parseLmsNumber("-1/026"),M:parseLmsNumber("21/7077"),S:parseLmsNumber("0/12836")}],
+    [217,{L:parseLmsNumber("-1/0112"),M:parseLmsNumber("21/751"),S:parseLmsNumber("0/12845")}],
+    [218,{L:parseLmsNumber("-0/9962"),M:parseLmsNumber("21/7937"),S:parseLmsNumber("0/12855")}],
+    [219,{L:parseLmsNumber("-0/9812"),M:parseLmsNumber("21/8358"),S:parseLmsNumber("0/12864")}],
+    [220,{L:parseLmsNumber("-0/9661"),M:parseLmsNumber("21/8773"),S:parseLmsNumber("0/12874")}],
+    [221,{L:parseLmsNumber("-0/9509"),M:parseLmsNumber("21/9182"),S:parseLmsNumber("0/12883")}],
+    [222,{L:parseLmsNumber("-0/9356"),M:parseLmsNumber("21/9585"),S:parseLmsNumber("0/12893")}],
+    [223,{L:parseLmsNumber("-0/9202"),M:parseLmsNumber("21/9982"),S:parseLmsNumber("0/12902")}],
+    [224,{L:parseLmsNumber("-0/9048"),M:parseLmsNumber("22/0374"),S:parseLmsNumber("0/12911")}],
+    [225,{L:parseLmsNumber("-0/8892"),M:parseLmsNumber("22/076"),S:parseLmsNumber("0/1292")}],
+    [226,{L:parseLmsNumber("-0/8735"),M:parseLmsNumber("22/114"),S:parseLmsNumber("0/1293")}],
+    [227,{L:parseLmsNumber("-0/8578"),M:parseLmsNumber("22/1514"),S:parseLmsNumber("0/12939")}],
+    [228,{L:parseLmsNumber("-0/8419"),M:parseLmsNumber("22/1883"),S:parseLmsNumber("0/12948")}]
   ])
 };
 
-// ===================== LMS LOOKUP =====================
-function getLMSRecord(sex, ageMonths) {
+// Lookup LMS with safe nearest fallback
+function getLMSRecord(sex, ageMonths){
   const month = Number.parseInt(ageMonths, 10);
-
-  if (!Number.isFinite(month)) {
-    throw new Error("ماه معتبر نیست.");
-  }
-
-  if (month < 61 || month > 228) {
-    throw new Error(`سن (${month} ماه) خارج از محدوده معتبر (۶۱ تا ۲۲۸ ماه) است.`);
-  }
-
   const table = sex === "male" ? window.LMS.boys : window.LMS.girls;
-  const rec = table.get(month);
-
-  if (!rec) {
-    throw new Error(`اطلاعات مرجع برای سن ${month} ماه یافت نشد.`);
+  let rec = table.get(month);
+  if (!rec){
+    // fallback: نزدیک‌ترین ماه موجود
+    let nearest;
+    for (const [m, r] of table.entries()){
+      if (!nearest || Math.abs(m - month) < Math.abs(nearest.m - month)){
+        nearest = { m, r };
+      }
+    }
+    if (nearest) rec = nearest.r;
   }
-
   return rec;
 }
+
+// Z-Score for BMI-for-age
+function calcZScoreForBMI(bmi, sex, ageMonths){
+  const rec = getLMSRecord(sex, ageMonths);
+  if (!rec || !Number.isFinite(bmi)) return NaN;
+  const { L, M, S } = rec;
+  if (Math.abs(L) < 1e-9){
+    return Math.log(bmi / M) / S;
+  }
+  return (Math.pow(bmi/M, L) - 1) / (L * S);
+}
+
+// Classification per WHO BMI-for-age z-score
+function classifyBMIz(z){
+  if (!Number.isFinite(z)) return { label:"—", tone:"" };
+  if (z < -3) return { label:"لاغری شدید (z < -3)", tone:"bad" };
+  if (z < -2) return { label:"لاغری (z < -2)", tone:"warn" };
+  if (z <= +1) return { label:"وزن طبیعی (-2 ≤ z ≤ +1)", tone:"ok" };
+  if (z <= +2) return { label:"اضافه وزن (+1 < z ≤ +2)", tone:"warn" };
+  if (z <= +3) return { label:"چاقی (+2 < z ≤ +3)", tone:"bad" };
+  return { label:"چاقی شدید (z > +3)", tone:"bad" };
+}
+
+// Weight deviation vs median BMI (M) for age
+function calcWeightDeviationKg(heightCm, weightKg, sex, ageMonths){
+  const rec = getLMSRecord(sex, ageMonths);
+  if (!rec) return { delta:null, target:null };
+  const h = Number(heightCm)/100;
+  const targetW = rec.M * h * h; // وزن هدف بر اساس BMI مرجع M
+  const delta = Number(weightKg) - targetW;
+  return { delta, target: targetW };
+}
+
+// Calories targets
+function calcCaloriesTargets(sex, heightCm, weightKg, ageYears, activityMult){
+  const bmr = calcBMR(sex, heightCm, weightKg, ageYears);
+  const tdee = bmr * activityMult;
+  // مقادیر محافظه‌کارانه برای حفظ عضلات
+  const surplus = 350;  // افزایش وزن با تمرکز بر عضله
+  const deficit = 300;  // کاهش وزن بدون افت عضله
+  return {
+    bmr,
+    tdee,
+    maintain: tdee,
+    gain: tdee + surplus,
+    cut: Math.max(bmr, tdee - deficit) // کمتر از BMR نرویم
+  };
+}
+
+// ========================= UI Init =========================
+const monthsFa = [
+  { i:1, t:"فروردین" },{ i:2, t:"اردیبهشت" },{ i:3, t:"خرداد" },{ i:4, t:"تیر" },
+  { i:5, t:"مرداد" },{ i:6, t:"شهریور" },{ i:7, t:"مهر" },{ i:8, t:"آبان" },
+  { i:9, t:"آذر" },{ i:10, t:"دی" },{ i:11, t:"بهمن" },{ i:12, t:"اسفند" }
+];
+
+function fillDaySelect(){
+  const daySel = $("#day");
+  daySel.innerHTML = "";
+  for (let d=1; d<=31; d++){
+    const opt = document.createElement("option");
+    opt.value = d; opt.textContent = d;
+    daySel.appendChild(opt);
+  }
+}
+function fillMonthSelect(){
+  const mSel = $("#month");
+  mSel.innerHTML = "";
+  monthsFa.forEach(m=>{
+    const opt = document.createElement("option");
+    opt.value = m.i; opt.textContent = m.t;
+    mSel.appendChild(opt);
+  });
+  mSel.value = 10; // پیش‌فرض: دی
+}
+fillDaySelect();
+fillMonthSelect();
+
+// Toggle sex
+let sex = "male";
+document.querySelectorAll(".toggle-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".toggle-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    sex = btn.dataset.sex;
+  });
+});
+
+// ========================= Calculate =========================
+function render(){
+  const jy = Number($("#year").value);
+  const jm = Number($("#month").value);
+  const jd = Number($("#day").value);
+  const heightCm = Number($("#height").value);
+  const weightKg = Number($("#weight").value);
+  const activity = Number($("#activity").value);
+
+  if (!jy || !jm || !jd || !heightCm || !weightKg || !activity){
+    $("#ageExact").textContent = "سن دقیق: —";
+    $("#bmi").textContent = "شاخص توده بدنی (BMI): —";
+    $("#zscore").textContent = "Z-Score (BMI برای سن): —";
+    $("#bmr").textContent = "BMR (متابولیسم پایه): —";
+    $("#tdee").textContent = "TDEE (کالری روزانه): —";
+    $("#weightDeviation").textContent = "میزان کمبود/اضافه وزن: —";
+    $("#cal-maintain").textContent = "کالری ثابت نگه داشتن وزن: —";
+    $("#cal-gain").textContent = "کالری افزایش وزن و حجم عضلات: —";
+    $("#cal-cut").textContent = "کالری کاهش وزن بدون افت عضلات: —";
+    return;
+  }
+
+  const age = calcAgeExact(jy, jm, jd);
+  const bmi = calcBMI(heightCm, weightKg);
+  const z = calcZScoreForBMI(bmi, sex, age.ageMonths);
+  const cls = classifyBMIz(z);
+  const dev = calcWeightDeviationKg(heightCm, weightKg, sex, age.ageMonths);
+  const cals = calcCaloriesTargets(sex, heightCm, weightKg, age.years, activity);
+
+  $("#ageExact").textContent = `سن دقیق: ${age.years} سال، ${age.months} ماه، ${age.days} روز`;
+  $("#bmi").textContent = `شاخص توده بدنی (BMI): ${fmt(bmi,1)}`;
+
+  if (dev.delta == null){
+    $("#weightDeviation").className = "card warn";
+    $("#weightDeviation").textContent = `داده مرجع ماه ${age.ageMonths} موجود نیست؛ نزدیک‌ترین رکورد اعمال شد.`;
+  } else {
+    const sign = dev.delta >= 0 ? "+" : "-";
+    const tone = Math.abs(dev.delta) < 1 ? "ok" : (dev.delta >= 0 ? "warn" : "warn");
+    const label = dev.delta >= 0 ? "اضافه وزن" : "کمبود وزن";
+    $("#weightDeviation").className = `card ${tone}`;
+    $("#weightDeviation").textContent =
+      `${label}: ${sign}${fmt(Math.abs(dev.delta),1)} کیلوگرم (وزن هدف: ${fmt(dev.target,1)} kg)`;
+  }
+
+  $("#zscore").className = `card ${cls.tone}`;
+  $("#zscore").textContent = `Z-Score: ${fmt(z,2)} — ${cls.label}`;
+
+  $("#bmr").textContent = `BMR (متابولیسم پایه): ${Math.round(cals.bmr)} kcal`;
+  $("#tdee").textContent = `TDEE (کالری روزانه): ${Math.round(cals.tdee)} kcal`;
+
+  $("#cal-maintain").textContent = `کالری ثابت نگه داشتن وزن: ${Math.round(cals.maintain)} kcal`;
+  $("#cal-gain").textContent = `کالری افزایش وزن و حجم عضلات: ${Math.round(cals.gain)} kcal`;
+  $("#cal-cut").textContent = `کالری کاهش وزن بدون افت عضلات: ${Math.round(cals.cut)} kcal`;
+}
+
+$("#btnCalc").addEventListener("click", render);
+
+// Auto PDF
+$("#btnPdf").addEventListener("click", ()=>{
+  if (typeof html2pdf === "undefined"){
+    alert("کتابخانه PDF بارگذاری نشده است. فایل js/html2pdf.bundle.min.js را اضافه کنید.");
+    return;
+  }
+  const opt = {
+    margin:       0.5,
+    filename:     `گزارش-BMI-BMR-TDEE.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(document.getElementById('report-root')).save();
+});
+
+// Optional: محاسبه فوری هنگام تغییر
+["year","month","day","height","weight","activity"].forEach(id=>{
+  const el = document.getElementById(id);
+  el && el.addEventListener("change", render);
+});
