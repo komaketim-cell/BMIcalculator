@@ -1,5 +1,8 @@
-داده های LMS برای دختران
-Month	L	M	S
+// =======================
+// LMS RAW DATA (61-228) — WHO Standard
+// =======================
+
+const LMS_GIRLS_RAW = `
 61	-0/8886	15/2441	0/09692
 62	-0/9068	15/2434	0/09738
 63	-0/9248	15/2433	0/09783
@@ -168,9 +171,9 @@ Month	L	M	S
 226	-0/7658	21/4014	0/14423
 227	-0/7577	21/4143	0/14432
 228	-0/7496	21/4269	0/14441
+`;
 
-داده های LMS برای پسران
-Month	L	M	S
+const LMS_BOYS_RAW = `
 61	-0/7387	15/2641	0/0839
 62	-0/7621	15/2616	0/08414
 63	-0/7856	15/2604	0/08439
@@ -339,5 +342,35 @@ Month	L	M	S
 226	-0/8735	22/114	0/1293
 227	-0/8578	22/1514	0/12939
 228	-0/8419	22/1883	0/12948
+`;
 
-جدول lms استاندارد who رو ارسال کردم. نسخه‌ای با LMS کامل هم آماده کن
+// =======================
+// PARSER (fix "/" to ".")
+// =======================
+function parseLms(raw) {
+  const lines = raw.trim().split(/\n+/);
+  const byMonth = {};
+  for (const line of lines) {
+    const [m, L, M, S] = line.trim().split(/\s+/);
+    const month = Number(m);
+    const l = Number(L.replace(/\//g, "."));
+    const mm = Number(M.replace(/\//g, "."));
+    const s = Number(S.replace(/\//g, "."));
+    byMonth[month] = { L: l, M: mm, S: s };
+  }
+  return byMonth;
+}
+
+const LMS = {
+  female: parseLms(LMS_GIRLS_RAW),
+  male: parseLms(LMS_BOYS_RAW),
+};
+
+// نمونه استفاده در Z-Score
+function calcZScoreBMI(bmi, month, sex) {
+  const ref = LMS[sex]?.[month];
+  if (!ref) return null;
+  const { L, M, S } = ref;
+  if (L === 0) return Math.log(bmi / M) / S;
+  return (Math.pow(bmi / M, L) - 1) / (L * S);
+}
