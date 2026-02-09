@@ -234,3 +234,18 @@ input, select {
 .pdf-mode .glass {
   background: #ffffff !important;
 }
+/* Force native select dropdown */
+select {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 5;
+}
+
+/* Prevent parent clipping dropdown */
+.field, .input-group, .glass, .card {
+  overflow: visible !important;
+}
+
