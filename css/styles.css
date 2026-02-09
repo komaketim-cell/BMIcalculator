@@ -202,50 +202,13 @@ input:focus, select:focus {
     grid-template-columns: 1fr;
   }
 }
-/* Fix select/datalist options color on dark theme */
-select, option, datalist, input[list] {
-  color: #0f172a !important;
-  background-color: #ffffff !important;
-}
 
-/* For dropdown list items (some browsers need this) */
 select option {
-  color: #0f172a !important;
-  background-color: #ffffff !important;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
-/* If you want the input field itself still dark */
-input, select {
-  color: var(--text);
-  background: rgba(255,255,255,0.08);
+/* حالت PDF برای تضمین دیده‌شدن متن */
+.pdf-mode, .pdf-mode * {
+  color: #0b1220 !important;
 }
-/* PDF Safe Mode */
-.pdf-mode * {
-  color: #111827 !important;
-  background: #ffffff !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  border-color: #e5e7eb !important;
-}
-
-.pdf-mode body,
-.pdf-mode .page,
-.pdf-mode .card,
-.pdf-mode .glass {
-  background: #ffffff !important;
-}
-/* Force native select dropdown */
-select {
-  appearance: auto !important;
-  -webkit-appearance: auto !important;
-  -moz-appearance: auto !important;
-  pointer-events: auto !important;
-  position: relative;
-  z-index: 5;
-}
-
-/* Prevent parent clipping dropdown */
-.field, .input-group, .glass, .card {
-  overflow: visible !important;
-}
-
