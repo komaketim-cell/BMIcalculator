@@ -91,11 +91,29 @@ downloadBtn.addEventListener("click", () => {
     pagebreak: { mode: ["avoid-all"] }
   };
 
-  html2pdf().set(opt).from(reportCard).save()
-    .catch(() => {
-      showToast("خطا در تولید PDF. لطفاً دوباره تلاش کنید.");
+ const pdfBtn = document.getElementById("downloadPdf");
+pdfBtn.addEventListener("click", () => {
+  document.body.classList.add("pdf-mode");
+
+  const element = document.querySelector(".page"); // یا بخش اصلی سایت
+
+  const opt = {
+    margin: 8,
+    filename: "report.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: "#ffffff" },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+  };
+
+  html2pdf()
+    .set(opt)
+    .from(element)
+    .save()
+    .then(() => {
+      document.body.classList.remove("pdf-mode");
     });
 });
+
 
 function isValidInput(height, weight) {
   return height > 0 && weight > 0;
