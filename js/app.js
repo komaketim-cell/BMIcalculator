@@ -134,7 +134,6 @@ function interpretGrowth(z) {
 /* --------- دریافت LMS برای سن (ماه) --------- */
 function getLMS(ageMonths, sex) {
   const data = sex === "male" ? window.LMS.boys : window.LMS.girls;
-  // نزدیک‌ترین ماه
   const min = data[0].month;
   const max = data[data.length - 1].month;
   if (ageMonths <= min) return data[0];
@@ -274,14 +273,12 @@ form.addEventListener("submit", (e) => {
     const z = calcZScore(lms.L, lms.M, lms.S, bmi);
     status = interpretGrowth(z);
 
-    // وزن هدف: BMI میانه (M)
     const h = height / 100;
     targetWeight = lms.M * h * h;
     weightDiff = weight - targetWeight;
   } else {
     status = adultBMICategory(bmi);
 
-    // وزن هدف بزرگسال: BMI 22
     const h = height / 100;
     targetWeight = 22 * h * h;
     weightDiff = weight - targetWeight;
@@ -290,7 +287,6 @@ form.addEventListener("submit", (e) => {
   const bmr = calcBMR(weight, height, ageInfo.ageInYears, sex);
   const tdee = calcTDEE(bmr, activity);
 
-  // کالری‌ها
   const keepCalories = tdee;
   const gainCalories = tdee + 500;
   const leanGainCalories = tdee + 250;
@@ -324,7 +320,7 @@ downloadBtn.addEventListener("click", () => {
 });
 
 /* ===========================================================
-   داده‌های LMS (دقیقاً همان داده‌های کامل شما)
+   داده‌های LMS (کامل و مطابق داده‌های ارسال‌شده)
    =========================================================== */
 
 window.LMS = {
@@ -653,19 +649,4 @@ window.LMS = {
     {"month":212,"L":0.044,"M":38.8,"S":0.1156},
     {"month":213,"L":0.057,"M":39.0,"S":0.1157},
     {"month":214,"L":0.07,"M":39.2,"S":0.1158},
-    {"month":215,"L":0.083,"M":39.4,"S":0.1159},
-    {"month":216,"L":0.096,"M":39.6,"S":0.1160},
-    {"month":217,"L":0.109,"M":39.8,"S":0.1161},
-    {"month":218,"L":0.122,"M":40.0,"S":0.1162},
-    {"month":219,"L":0.135,"M":40.2,"S":0.1163},
-    {"month":220,"L":0.148,"M":40.4,"S":0.1164},
-    {"month":221,"L":0.161,"M":40.6,"S":0.1165},
-    {"month":222,"L":0.174,"M":40.8,"S":0.1166},
-    {"month":223,"L":0.187,"M":41.0,"S":0.1167},
-    {"month":224,"L":0.2,"M":41.2,"S":0.1168},
-    {"month":225,"L":0.213,"M":41.4,"S":0.1169},
-    {"month":226,"L":0.226,"M":41.6,"S":0.1170},
-    {"month":227,"L":0.239,"M":41.8,"S":0.1171},
-    {"month":228,"L":0.252,"M":42.0,"S":0.1172}
-  ]
-};
+    {"month":215,"L":0.083,"M
