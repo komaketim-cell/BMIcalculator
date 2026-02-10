@@ -74,6 +74,17 @@ button{
 
 button:hover{filter:brightness(1.05)}
 
+.secondary{
+  background:#2c3448;
+  color:#f0f0f0;
+}
+
+.btn-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
 .error{
   margin-top:10px;
   color:#ff6b6b;
