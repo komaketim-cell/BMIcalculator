@@ -1,75 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>محاسبه شاخص‌های بدنی</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
-    <header class="glass header">
-      <h1>محاسبه شاخص‌های بدنی</h1>
-      <p>محاسبه BMI، وضعیت بدن، سن دقیق، BMR، TDEE و توصیه‌های شخصی</p>
+    <header class="glass">
+      <h1>ابزار محاسبه شاخص‌های بدنی</h1>
+      <p>محاسبه BMI، Z-Score (بر اساس LMS)، سن دقیق، BMR، TDEE و کالری هدفمند</p>
     </header>
 
-    <section class="glass card">
-      <h2>اطلاعات فردی</h2>
-      <form id="calcForm">
-        <div class="grid">
-          <div class="field">
-            <label>جنسیت</label>
-            <select id="sex" required>
-              <option value="">انتخاب کنید</option>
-              <option value="male">مرد</option>
-              <option value="female">زن</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>قد (سانتی‌متر)</label>
-            <input type="number" id="height" min="50" max="250" step="0.1" required />
-          </div>
-
-          <div class="field">
-            <label>وزن (کیلوگرم)</label>
-            <input type="number" id="weight" min="10" max="400" step="0.1" required />
-          </div>
-
-          <div class="field">
-            <label>تاریخ تولد (شمسی)</label>
-            <input type="text" id="birthJalali" placeholder="مثال: 1385/07/15" required />
-          </div>
-
-          <div class="field">
-            <label>سطح فعالیت</label>
-            <select id="activity" required>
-              <option value="">انتخاب کنید</option>
-              <option value="1.2">کم‌تحرک (نشسته)</option>
-              <option value="1.375">کم‌تحرک + کمی فعالیت</option>
-              <option value="1.55">فعال متوسط</option>
-              <option value="1.725">فعال زیاد</option>
-              <option value="1.9">بسیار فعال / ورزشکار حرفه‌ای</option>
-            </select>
-          </div>
+    <section class="glass form">
+      <div class="grid">
+        <div class="field">
+          <label>جنسیت</label>
+          <select id="sex">
+            <option value="female">دختر</option>
+            <option value="male">پسر</option>
+          </select>
         </div>
 
-        <button type="submit" class="btn">محاسبه</button>
-      </form>
+        <div class="field">
+          <label>وزن (کیلوگرم)</label>
+          <input id="weight" type="number" step="0.1" placeholder="مثلاً 45" />
+        </div>
+
+        <div class="field">
+          <label>قد (سانتی‌متر)</label>
+          <input id="height" type="number" step="0.1" placeholder="مثلاً 155" />
+        </div>
+
+        <div class="field">
+          <label>تاریخ تولد (میلادی)</label>
+          <input id="birth" type="date" />
+        </div>
+
+        <div class="field">
+          <label>تاریخ محاسبه (میلادی)</label>
+          <input id="ref" type="date" />
+        </div>
+
+        <div class="field">
+          <label>سطح فعالیت</label>
+          <select id="activity">
+            <option value="sedentary">خیلی کم‌تحرک</option>
+            <option value="light">کم‌تحرک</option>
+            <option value="moderate" selected>متوسط</option>
+            <option value="active">فعال</option>
+            <option value="very_active">بسیار فعال</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>هدف</label>
+          <select id="goal">
+            <option value="maintenance" selected>حفظ وزن</option>
+            <option value="gain">افزایش وزن</option>
+            <option value="muscle">افزایش عضله</option>
+            <option value="fatloss">کاهش چربی (بدون افت عضله)</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="calcBtn">محاسبه</button>
+      <div id="error" class="error"></div>
     </section>
 
-    <section class="glass card" id="resultsCard">
+    <section class="glass results">
       <h2>نتایج</h2>
-      <div id="results"></div>
-      <button id="downloadBtn" class="btn secondary">دانلود نتایج (PDF)</button>
-    </section>
+      <div class="result-grid">
+        <div class="card"><span>سن (سال)</span><b id="ageYears">-</b></div>
+        <div class="card"><span>سن (ماه)</span><b id="ageMonths">-</b></div>
+        <div class="card"><span>BMI</span><b id="bmi">-</b></div>
+        <div class="card"><span>Z-Score</span><b id="zScore">-</b></div>
+        <div class="card"><span>Percentile</span><b id="percentile">-</b></div>
+        <div class="card"><span>وضعیت</span><b id="status">-</b></div>
+        <div class="card"><span>BMR</span><b id="bmr">-</b></div>
+        <div class="card"><span>TDEE</span><b id="tdee">-</b></div>
+      </div>
 
-    <footer class="glass footer">
-      <small>این ابزار صرفاً جهت اطلاع است و جایگزین مشاوره پزشکی نیست.</small>
-    </footer>
+      <div class="targets">
+        <h3>کالری هدفمند</h3>
+        <ul>
+          <li>حفظ وزن: <b id="t_maint">-</b> kcal</li>
+          <li>افزایش وزن: <b id="t_gain">-</b> kcal</li>
+          <li>افزایش عضله: <b id="t_muscle">-</b> kcal</li>
+          <li>کاهش چربی: <b id="t_loss">-</b> kcal</li>
+        </ul>
+      </div>
+
+      <div class="recs">
+        <h3>توصیه‌ها</h3>
+        <ul id="recsList"></ul>
+      </div>
+    </section>
   </div>
 
-  <script src="html2pdf.bundle.min.js"></script>
   <script src="App.js"></script>
 </body>
 </html>
