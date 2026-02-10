@@ -413,9 +413,7 @@ const calcBMI = (weightKg, heightCm) => {
 };
 
 const calcZScore = (x, L, M, S) => {
-  if (L === 0) {
-    return Math.log(x / M) / S;
-  }
+  if (L === 0) return Math.log(x / M) / S;
   return (Math.pow(x / M, L) - 1) / (L * S);
 };
 
@@ -475,18 +473,15 @@ const activityFactor = (level) => {
   return map[level] || 1.2;
 };
 
-const calcTargets = (tdee) => {
-  return {
-    maintenance: Math.round(tdee),
-    gain: Math.round(tdee * 1.1),
-    muscle: Math.round(tdee * 1.15),
-    loss: Math.round(tdee * 0.85),
-  };
-};
+const calcTargets = (tdee) => ({
+  maintenance: Math.round(tdee),
+  gain: Math.round(tdee * 1.1),
+  muscle: Math.round(tdee * 1.15),
+  loss: Math.round(tdee * 0.85),
+});
 
 const buildRecommendations = ({ ageYears, status, goal, tdee }) => {
   const recs = [];
-
   recs.push("روزانه حداقل ۷–۸ لیوان آب بنوشید.");
   recs.push("پروتئین کافی را در هر وعده حفظ کنید.");
   recs.push("خواب ۷–۹ ساعته منظم کیفیت متابولیسم را بهبود می‌دهد.");
@@ -518,6 +513,119 @@ const buildRecommendations = ({ ageYears, status, goal, tdee }) => {
 };
 
 // =======================
+// JALALI DATE UTILS
+// =======================
+const parseJalali = (s) => {
+  if (!s) return null;
+  const parts = s.replace(/-/g, "/").split("/").map((p) => p.trim());
+  if (parts.length !== 3) return null;
+  const jy = parseInt(parts[0], 10);
+  const jm = parseInt(parts[1], 10);
+  const jd = parseInt(parts[2], 10);
+  if (!jy || !jm || !jd) return null;
+  return { jy, jm, jd };
+};
+
+const div = (a, b) => Math.floor(a / b);
+
+const jalCal = (jy) => {
+  const breaks = [
+    -61, 9, 38, 199, 426, 686, 756, 818,
+    1111, 1181, 1210, 1635, 2060, 2097,
+    2192, 2262, 2324, 2394, 2456, 3178
+  ];
+  let bl = breaks.length;
+  let gy = jy + 621;
+  let leapJ = -14;
+  let jp = breaks[0];
+  let jm, jump, leap, leapG, march, n, i;
+
+  if (jy < jp || jy >= breaks[bl - 1]) return { leap: false, gy, march: 0 };
+
+  for (i = 1; i < bl; i += 1) {
+    jm = breaks[i];
+    jump = jm - jp;
+    if (jy < jm) break;
+    leapJ = leapJ + div(jump, 33) * 8 + div((jump % 33), 4);
+    jp = jm;
+  }
+  n = jy - jp;
+  leapJ = leapJ + div(n, 33) * 8 + div(((n % 33) + 3), 4);
+  if ((jump % 33) === 4 && (jump - n) === 4) leapJ += 1;
+
+  leapG = div(gy, 4) - div((div(gy, 100) + 1) * 3, 4) - 150;
+  march = 20 + leapJ - leapG;
+
+  if (jump - n < 6) n = n - jump + div(jump + 4, 33) * 33;
+  leap = (((n + 1) % 33) - 1) % 4;
+  if (leap === -1) leap = 4;
+
+  return { leap: leap === 0, gy, march };
+};
+
+const isLeapJalali = (jy) => jalCal(jy).leap;
+
+const jalaliMonthLength = (jy, jm) => {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return isLeapJalali(jy) ? 30 : 29;
+};
+
+const isValidJalali = (jy, jm, jd) => {
+  if (jm < 1 || jm > 12) return false;
+  if (jd < 1 || jd > jalaliMonthLength(jy, jm)) return false;
+  return true;
+};
+
+const jalaliToGregorian = (jy, jm, jd) => {
+  const r = jalCal(jy);
+  const gy = r.gy;
+  const march = r.march;
+
+  let jdn = (gy + div(gy, 4) - div(gy, 100) + div(gy, 400) + 1721425) + (march - 1);
+  jdn += (jm <= 7) ? ((jm - 1) * 31) : ((jm - 7) * 30 + 186);
+  jdn += (jd - 1);
+
+  let depoch = jdn - 1721425;
+  let quadricent = div(depoch, 146097);
+  let dqc = depoch % 146097;
+  let cent = div(dqc, 36524);
+  let dcent = dqc % 36524;
+  let quad = div(dcent, 1461);
+  let dquad = dcent % 1461;
+  let yindex = div(dquad, 365);
+  let gy2 = quadricent * 400 + cent * 100 + quad * 4 + yindex;
+  if (!(cent === 4 || yindex === 4)) gy2 += 1;
+
+  let yearday = jdn - (1721425 + gy2 + div(gy2, 4) - div(gy2, 100) + div(gy2, 400));
+  let leap = ((gy2 % 4 === 0 && gy2 % 100 !== 0) || (gy2 % 400 === 0));
+  let gd, gm;
+  if (yearday < 31) { gm = 1; gd = yearday + 1; }
+  else if (yearday < 59 + (leap ? 1 : 0)) { gm = 2; gd = yearday - 31 + 1; }
+  else if (yearday < 90 + (leap ? 1 : 0)) { gm = 3; gd = yearday - 59 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 120 + (leap ? 1 : 0)) { gm = 4; gd = yearday - 90 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 151 + (leap ? 1 : 0)) { gm = 5; gd = yearday - 120 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 181 + (leap ? 1 : 0)) { gm = 6; gd = yearday - 151 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 212 + (leap ? 1 : 0)) { gm = 7; gd = yearday - 181 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 243 + (leap ? 1 : 0)) { gm = 8; gd = yearday - 212 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 273 + (leap ? 1 : 0)) { gm = 9; gd = yearday - 243 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 304 + (leap ? 1 : 0)) { gm = 10; gd = yearday - 273 - (leap ? 1 : 0) + 1; }
+  else if (yearday < 334 + (leap ? 1 : 0)) { gm = 11; gd = yearday - 304 - (leap ? 1 : 0) + 1; }
+  else { gm = 12; gd = yearday - 334 - (leap ? 1 : 0) + 1; }
+
+  return { gy: gy2, gm, gd };
+};
+
+const jalaliToDate = (jStr) => {
+  const p = parseJalali(jStr);
+  if (!p) return null;
+  const { jy, jm, jd } = p;
+  if (!isValidJalali(jy, jm, jd)) return null;
+  const g = jalaliToGregorian(jy, jm, jd);
+  return new Date(`${g.gy}-${String(g.gm).padStart(2,"0")}-${String(g.gd).padStart(2,"0")}T00:00:00`);
+};
+
+// =======================
 // MAIN COMPUTE
 // =======================
 const computeAll = ({
@@ -546,12 +654,7 @@ const computeAll = ({
   const tdee = bmr * activityFactor(activityLevel);
   const targets = calcTargets(tdee);
 
-  const recs = buildRecommendations({
-    ageYears,
-    status,
-    goal,
-    tdee,
-  });
+  const recs = buildRecommendations({ ageYears, status, goal, tdee });
 
   return {
     ageMonths: parseFloat(ageMonths.toFixed(2)),
@@ -571,6 +674,7 @@ const computeAll = ({
 // UI WIRING
 // =======================
 const $ = (id) => document.getElementById(id);
+let lastResult = null;
 
 const showError = (msg) => {
   $("error").textContent = msg || "";
@@ -582,17 +686,25 @@ $("calcBtn").addEventListener("click", () => {
   const sex = $("sex").value;
   const weightKg = parseFloat($("weight").value);
   const heightCm = parseFloat($("height").value);
-  const birthDate = $("birth").value;
-  const refDate = $("ref").value;
+  const birthJ = $("birthJ").value;
+  const refJ = $("refJ").value;
   const activityLevel = $("activity").value;
   const goal = $("goal").value;
 
-  if (!weightKg || !heightCm || !birthDate || !refDate) {
+  if (!weightKg || !heightCm || !birthJ || !refJ) {
     showError("لطفاً همه فیلدهای ضروری را پر کنید.");
     return;
   }
 
-  if (new Date(refDate) <= new Date(birthDate)) {
+  const birthDate = jalaliToDate(birthJ);
+  const refDate = jalaliToDate(refJ);
+
+  if (!birthDate || !refDate) {
+    showError("تاریخ شمسی نامعتبر است. قالب صحیح: YYYY/MM/DD");
+    return;
+  }
+
+  if (refDate <= birthDate) {
     showError("تاریخ محاسبه باید بعد از تاریخ تولد باشد.");
     return;
   }
@@ -606,6 +718,8 @@ $("calcBtn").addEventListener("click", () => {
     activityLevel,
     goal,
   });
+
+  lastResult = result;
 
   $("ageYears").textContent = result.ageYears;
   $("ageMonths").textContent = result.ageMonths;
@@ -628,4 +742,47 @@ $("calcBtn").addEventListener("click", () => {
     li.textContent = r;
     list.appendChild(li);
   });
+});
+
+// =======================
+// PDF EXPORT
+// =======================
+$("pdfBtn").addEventListener("click", () => {
+  if (!lastResult) {
+    showError("ابتدا محاسبه را انجام دهید.");
+    return;
+  }
+  showError("");
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = 12;
+  doc.setFontSize(14);
+  doc.text("Body Indices Report", 10, y); y += 8;
+
+  doc.setFontSize(10);
+  doc.text(`Age (years): ${lastResult.ageYears}`, 10, y); y += 6;
+  doc.text(`Age (months): ${lastResult.ageMonths}`, 10, y); y += 6;
+  doc.text(`BMI: ${lastResult.bmi}`, 10, y); y += 6;
+  doc.text(`Z-Score: ${lastResult.zScore}`, 10, y); y += 6;
+  doc.text(`Percentile: ${lastResult.percentile}`, 10, y); y += 6;
+  doc.text(`Status: ${lastResult.status}`, 10, y); y += 6;
+  doc.text(`BMR: ${lastResult.bmr} kcal`, 10, y); y += 6;
+  doc.text(`TDEE: ${lastResult.tdee} kcal`, 10, y); y += 8;
+
+  doc.text("Target Calories:", 10, y); y += 6;
+  doc.text(`Maintenance: ${lastResult.targets.maintenance}`, 10, y); y += 6;
+  doc.text(`Gain: ${lastResult.targets.gain}`, 10, y); y += 6;
+  doc.text(`Muscle: ${lastResult.targets.muscle}`, 10, y); y += 6;
+  doc.text(`Fat Loss: ${lastResult.targets.loss}`, 10, y); y += 8;
+
+  doc.text("Recommendations:", 10, y); y += 6;
+  lastResult.recommendations.forEach((r) => {
+    doc.text(`- ${r}`, 12, y);
+    y += 6;
+    if (y > 280) { doc.addPage(); y = 12; }
+  });
+
+  doc.save("body-indices-report.pdf");
 });
