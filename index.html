@@ -10,7 +10,7 @@
   <div class="app">
     <header class="glass">
       <h1>ابزار محاسبه شاخص‌های بدنی</h1>
-      <p>محاسبه BMI، Z-Score (بر اساس LMS)، سن دقیق، BMR، TDEE و کالری هدفمند</p>
+      <p>فرم شمسی + تبدیل جلالی + خروجی PDF</p>
     </header>
 
     <section class="glass form">
@@ -34,13 +34,13 @@
         </div>
 
         <div class="field">
-          <label>تاریخ تولد (میلادی)</label>
-          <input id="birth" type="date" />
+          <label>تاریخ تولد (شمسی)</label>
+          <input id="birthJ" type="text" placeholder="مثلاً 1390/08/12" />
         </div>
 
         <div class="field">
-          <label>تاریخ محاسبه (میلادی)</label>
-          <input id="ref" type="date" />
+          <label>تاریخ محاسبه (شمسی)</label>
+          <input id="refJ" type="text" placeholder="مثلاً 1404/11/21" />
         </div>
 
         <div class="field">
@@ -65,7 +65,11 @@
         </div>
       </div>
 
-      <button id="calcBtn">محاسبه</button>
+      <div class="btn-row">
+        <button id="calcBtn">محاسبه</button>
+        <button id="pdfBtn" class="secondary">خروجی PDF</button>
+      </div>
+
       <div id="error" class="error"></div>
     </section>
 
@@ -99,6 +103,7 @@
     </section>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="App.js"></script>
 </body>
 </html>
